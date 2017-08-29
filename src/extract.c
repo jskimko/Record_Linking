@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
         if (sex == 'F') continue;
 
         // Age = col 44
+        strtok(NULL, "\t");
         col = strtok(NULL, "\t"); 
         age = atoi(col);
         if (age > 10) continue;

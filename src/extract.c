@@ -79,8 +79,7 @@ entry_t *extract_valid_entries(char *filename, int year) {
     }
 
     // Store valid entries
-    entries = malloc(sizeof(entry_t));
-    cur = entries;
+    cur = entries = malloc(sizeof(entry_t));
     for (i=0; i<n_lines; i++) { 
         fgets(buf, sizeof(buf), fp);
 
@@ -174,7 +173,39 @@ void *add_names(char *filename, entry_t *entries) {
     }
 } // add_names
 
-entry_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
+match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
+    match_t *ret, *cur_ret;
+    entry_t *cur_1851, *cur_1881, *new_entry;
+    
+    cur_ret = ret = malloc(sizeof(match_t));
+    cur_1851 = entries_1851->next;
+    cur_1881 = entries_1881->next;
+
+    // for each 1851 entry
+    while (cur_1851) {
+        // check each 1881 entry for satisfiability
+        while (cur_1881) {
+            if (cur_1851->age + 30 - cur_1881->age > 5) continue;
+            if (1-jarowinkler(cur_1851->fname, cur_1881->fname) > 0.2) continue;
+            if (1-jarowinkler(cur_1851->lname, cur_1881->lname) > 0.2) continue;
+            
+            // save match
+            match_t *new_match = malloc(sizeof(match_t));
+            new_match->entry_1851 = cur_1851;
+            new_match->entry_1881 = cur_1881;
+            new_match->next = NULL;
+
+            cur_ret->next = new_match;
+            cur_ret = cur_ret->next;
+        }
+    }
+
+    return ret;
+}
+
+double jarowinker(char *name_1851, char *name_1881) {
+
+    return 0.0;
 }
 
 void print_entries(entry_t *entries) {

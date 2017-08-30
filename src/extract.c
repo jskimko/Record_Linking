@@ -4,11 +4,11 @@
 #include "extract.h"
 
 int main(int argc, char *argv[]) {
-    entry_t *entries_1851, *entries_1881;
+    entry_t *entries_1851, *entries_1881, *matches;
 
     // Check arguments
-    if (argc != 3) {
-        fprintf(stderr, "usage: %s data_1851 data_1881\n", __FILE__, __LINE__, argv[0]);
+    if (argc != 5) {
+        fprintf(stderr, "usage: %s data_1851 data_1881 names_1851 names_1881\n", __FILE__, __LINE__, argv[0]);
         return -1;
     }
 
@@ -21,6 +21,16 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    // Add names
+    add_names(argv[3], entries_1851);
+    add_names(argv[4], entries_1881);
+
+    print_entries(entries_1851);
+    print_entries(entries_1881);
+
+    // Find matches
+    matches = find_matches(entries_1851, entries_1881);
+
     return 0;
 } // main
 
@@ -28,10 +38,15 @@ entry_t *extract_valid_entries(char *filename, int year) {
     FILE *fp;
     char buf[4096];
     char *col;
-    int n_lines=0, count=0;
+    int n_lines=0;
     int min_age, max_age;
     int i,j;
     entry_t *entries, *cur;
+
+    unsigned int recID;
+    char sex;
+    unsigned char age;
+    int len;
 
     // Open data file
     if ((fp = fopen(filename, "r")) == NULL) {
@@ -67,15 +82,10 @@ entry_t *extract_valid_entries(char *filename, int year) {
     entries = malloc(sizeof(entry_t));
     cur = entries;
     for (i=0; i<n_lines; i++) { 
-        unsigned int recID;
-        char sex;
-        unsigned char age;
-        int len;
-
         fgets(buf, sizeof(buf), fp);
 
         // RecID = col 2
-        col = strtok(buf, "\t");
+        strtok(buf, "\t");
         col = strtok(NULL, "\t");
         recID = atoi(col);
 
@@ -101,25 +111,81 @@ entry_t *extract_valid_entries(char *filename, int year) {
         new_entry->recID = recID;
         new_entry->sex = sex;
         new_entry->age = age;
-        new_entry->par = malloc(len + 1);
-        strncpy(new_entry->par, col, len + 1);
+        new_entry->par = malloc(len+1);
+        strncpy(new_entry->par, col, len+1);
 
         cur->next = new_entry;
         cur = cur->next;
-        count++;
     }
-
-    cur = entries;
-    while (cur->next) {
-        cur = cur->next;
-        print_entry(cur);
-    }
-    printf("There were %d extracted entries.\n", count);
 
     return entries;
 } // extract_valid_entries
 
-void print_entry(entry_t *entry) {
-    printf("%d %c %d %s\n", entry->recID, entry->sex, entry->age, entry->par);
+void *add_names(char *filename, entry_t *entries) {
+    FILE *fp;
+    char buf[4096];
+    char *col;
+    int len;
+    int recID;
+
+    // Open data file
+    if ((fp = fopen(filename, "r")) == NULL) {
+        perror("extract:fopen");
+        return NULL;
+    }
+
+    // Remove header
+    if (fgets(buf, sizeof(buf), fp) == NULL) {
+        perror("extract:fgets");
+        return NULL;
+    }
+
+    // Go to first entry
+    entries = entries->next;
+
+    // Scan for matching RecID
+    while (entries) {
+        if (!fgets(buf, sizeof(buf), fp)) break;
+
+        // RecID = col 2
+        strtok(buf, "\t");
+        col = strtok(NULL, "\t");
+        recID = atoi(col);
+
+        if (entries->recID == recID) {
+            // Pname = col 4
+            strtok(NULL, "\t");
+            col = strtok(NULL, "\t");
+            len = strlen(col);
+
+            entries->fname = malloc(len+1);
+            strncpy(entries->fname, col, len+1);
+
+            // Sname = col 6
+            strtok(NULL, "\t");
+            col = strtok(NULL, "\t");
+            len = strlen(col);
+
+            entries->lname = malloc(len+1);
+            strncpy(entries->lname, col, len+1);
+            
+            entries = entries->next;
+        }
+    }
+} // add_names
+
+entry_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
+}
+
+void print_entries(entry_t *entries) {
+    int count=0;
+
+    while (entries->next) {
+        entries = entries->next;
+        printf("%d %s %s %c %d %s\n", entries->recID, entries->fname, entries->lname,
+                                      entries->sex, entries->age, entries->par);
+        count++;
+    }
+    printf("There were %d extracted entries.\n", count);
 } // print_entry
 

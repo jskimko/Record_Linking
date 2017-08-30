@@ -11,7 +11,16 @@ struct entry_t {
 };
 typedef struct entry_t entry_t;
 
-void print_entry(entry_t *entry);
+/* Extracts entries from data file where valid means male and below age 10. */
 entry_t *extract_valid_entries(char *filename, int year);
+
+/* Reads the name file and adds names to a list of valid entries. */
+void *add_names(char *filename, entry_t *entries);
+
+/* Find matches between two entry lists using age and JW distance. */
+entry_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
+
+/* Print the contents of an entry list. */
+void print_entries(entry_t *entries);
 
 #endif

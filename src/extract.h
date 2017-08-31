@@ -27,9 +27,6 @@ void *add_names(char *filename, entry_t *entries);
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
 
-/* Compute the Jaro-Winkler distance between strings. */
-double jarowinker(char *name_1851, char *name_1881);
-
 /* Print the contents of an entry list. */
 void print_entries(entry_t *entries);
 

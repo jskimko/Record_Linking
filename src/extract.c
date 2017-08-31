@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "extract.h"
+#include "jarowinkler.h"
 
 int main(int argc, char *argv[]) {
-    entry_t *entries_1851, *entries_1881, *matches;
+    entry_t *entries_1851, *entries_1881;
+    match_t *matches;
 
     // Check arguments
     if (argc != 5) {
@@ -201,11 +203,6 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     }
 
     return ret;
-}
-
-double jarowinker(char *name_1851, char *name_1881) {
-
-    return 0.0;
 }
 
 void print_entries(entry_t *entries) {

@@ -9,8 +9,9 @@ int main(int argc, char *argv[]) {
     match_t *matches;
 
     // Check arguments
-    if (argc != 5) {
-        fprintf(stderr, "usage: %s data_1851 data_1881 names_1851 names_1881\n", __FILE__, __LINE__, argv[0]);
+    if (argc != 6) {
+        fprintf(stderr, "usage: %s data_1851 data_1881 names_1851 names_1881 "
+                        "fnames_std\n", __FILE__, __LINE__, argv[0]);
         return -1;
     }
 
@@ -27,8 +28,14 @@ int main(int argc, char *argv[]) {
     add_names(argv[3], entries_1851);
     add_names(argv[4], entries_1881);
 
+    // Standardize fnames
+    standardize_fnames(argv[5], entries_1851);
+    standardize_fnames(argv[5], entries_1881);
+    return 0;
+
 #ifdef PRINT
     // Print valid entries from each list
+    printf("Printing valid entries:\n");
     print_entries(entries_1851);
     print_entries(entries_1881);
 #endif
@@ -38,6 +45,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef PRINT
     // Print matches
+    printf("Printing matches:\n");
     print_matches(matches);
 #endif
 
@@ -90,6 +98,8 @@ entry_t *extract_valid_entries(char *filename, int year) {
 
     // Store valid entries
     cur = entries = malloc(sizeof(entry_t));
+    cur->next = NULL;
+
     for (i=0; i<n_lines; i++) { 
         fgets(buf, sizeof(buf), fp);
 
@@ -122,17 +132,21 @@ entry_t *extract_valid_entries(char *filename, int year) {
         new_entry->age = age;
         new_entry->par = malloc(len+1);
         strncpy(new_entry->par, col, len+1);
+        new_entry->fname = NULL;
+        new_entry->lname = NULL;
+        new_entry->next = NULL;
 
         cur->next = new_entry;
         cur = cur->next;
     }
 
+    fclose(fp);
     return entries;
 } // extract_valid_entries
 
-void *add_names(char *filename, entry_t *entries) {
+void add_names(char *filename, entry_t *entries) {
     FILE *fp;
-    char buf[4096];
+    char buf[512];
     char *col;
     int len;
     int recID;
@@ -140,13 +154,13 @@ void *add_names(char *filename, entry_t *entries) {
     // Open data file
     if ((fp = fopen(filename, "r")) == NULL) {
         perror("extract:fopen");
-        return NULL;
+        return;
     }
 
     // Remove header
     if (fgets(buf, sizeof(buf), fp) == NULL) {
         perror("extract:fgets");
-        return NULL;
+        return;
     }
 
     // Go to first entry
@@ -165,8 +179,8 @@ void *add_names(char *filename, entry_t *entries) {
             // Pname = col 4
             strtok(NULL, "\t");
             col = strtok(NULL, "\t");
-            len = strlen(col);
 
+            len = strlen(col);
             entries->fname = malloc(len+1);
             strncpy(entries->fname, col, len+1);
 
@@ -181,7 +195,63 @@ void *add_names(char *filename, entry_t *entries) {
             entries = entries->next;
         }
     }
+
+    fclose(fp);
 } // add_names
+
+void standardize_fnames(char *filename, entry_t *entries) {
+    FILE *fp;
+    char buf[512];
+    char *col, c;
+    name_dict_t *name_dict, *cur;
+    int len, i;
+
+    // Open data file
+    if ((fp = fopen(filename, "r")) == NULL) {
+        perror("extract:fopen");
+        return;
+    }
+
+    // Remove header
+    if (fgets(buf, sizeof(buf), fp) == NULL) {
+        perror("extract:fgets");
+        return;
+    }
+
+    // Create name dictionary to map fname -> fname_std
+    cur = name_dict = malloc(sizeof(name_dict_t));
+    cur->next = NULL;
+
+    while (fgets(buf, sizeof(buf), fp)) {
+        // create new mapping
+        name_dict_t *new_map = malloc(sizeof(name_dict_t));
+        new_map->next = NULL;
+
+        // fname
+        col = strtok(buf, ",");
+        len = strlen(col);
+        new_map->fname = malloc(len+1);
+        strncpy(new_map->fname, col, len+1);
+
+        // fname_std
+        col = strtok(NULL, "\n");
+        len = strlen(col);
+        new_map->fname_std = malloc(len+1);
+        strncpy(new_map->fname_std, col, len+1);
+
+        cur->next = new_map;
+        cur = cur->next;
+    }
+
+    printf("Printing standardized name dictionary:\n");
+    cur = name_dict;
+    while (cur->next) {
+        cur = cur->next;
+        printf("%s %s\n", cur->fname, cur->fname_std);
+    }
+
+    fclose(fp);
+}
 
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     match_t *ret, *cur_ret;

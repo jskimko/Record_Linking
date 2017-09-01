@@ -27,11 +27,19 @@ int main(int argc, char *argv[]) {
     add_names(argv[3], entries_1851);
     add_names(argv[4], entries_1881);
 
+#ifdef PRINT
+    // Print valid entries from each list
     print_entries(entries_1851);
     print_entries(entries_1881);
+#endif
 
     // Find matches
     matches = find_matches(entries_1851, entries_1881);
+
+#ifdef PRINT
+    // Print matches
+    print_matches(matches);
+#endif
 
     return 0;
 } // main
@@ -180,15 +188,24 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     entry_t *cur_1851, *cur_1881, *new_entry;
     
     cur_ret = ret = malloc(sizeof(match_t));
-    cur_1851 = entries_1851->next;
-    cur_1881 = entries_1881->next;
+    cur_1851 = entries_1851;
+    cur_1881 = entries_1881;
 
     // for each 1851 entry
-    while (cur_1851) {
+    while (cur_1851->next) {
+        cur_1851 = cur_1851->next;
+
         // check each 1881 entry for satisfiability
-        while (cur_1881) {
+        while (cur_1881->next) {
+            cur_1881 = cur_1881->next;
+
+            // age criteria
             if (cur_1851->age + 30 - cur_1881->age > 5) continue;
+
+            // jarowinkler criteria
+            if (!cur_1851->fname || !cur_1881->fname) continue;
             if (1-jarowinkler(cur_1851->fname, cur_1881->fname) > 0.2) continue;
+            if (!cur_1851->lname || !cur_1881->lname) continue;
             if (1-jarowinkler(cur_1851->lname, cur_1881->lname) > 0.2) continue;
             
             // save match
@@ -199,12 +216,17 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
 
             cur_ret->next = new_match;
             cur_ret = cur_ret->next;
+
         }
+
+        // reset 1881 pointer
+        cur_1881 = entries_1881;
     }
 
     return ret;
-}
+} // find_matches
 
+#ifdef PRINT
 void print_entries(entry_t *entries) {
     int count=0;
 
@@ -214,6 +236,19 @@ void print_entries(entry_t *entries) {
                                       entries->sex, entries->age, entries->par);
         count++;
     }
-    printf("There were %d extracted entries.\n", count);
-} // print_entry
+    printf("There were %d extracted entries.\n\n", count);
+} // print_entries
 
+void print_matches(match_t *matches) {
+    int count=0;
+
+    while (matches->next) {
+        matches = matches->next;
+        print_entries(matches->entry_1851);
+        print_entries(matches->entry_1881);
+        count++;
+    }
+    printf("There were %d extracted matches.\n", count);
+} // print_matches
+
+#endif

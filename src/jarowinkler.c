@@ -87,10 +87,15 @@ double jarowinkler(const char *str1, const char *str2) {
     double p=0.1;                           // scaling factor
     double jaro_dist = jaro(str1, str2);    // jaro distance
 
+    // count length of common prefix
     int i;
     for (i=0; i<4; i++) {
+        // if end of string, stop
         if (!str1[i] || !str2[i]) break;
+        // if chars match, increment l
         if (str1[i] == str2[i]) l = i+1;
+        // else stop
+        else break;
     }
 
     return jaro_dist + (l * p * (1 - jaro_dist));

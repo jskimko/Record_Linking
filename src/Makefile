@@ -1,18 +1,18 @@
 CC=gcc
 CFLAGS=-O3
-OBJS=extract.o jarowinkler.o
-DEPS=extract.h jarowinkler.h
+OBJS=record_linker.o jarowinkler.o
+DEPS=record_linker.h jarowinkler.h
 
-all: extract
+all: record_linker
 
 print: CFLAGS += -DPRINT
-print: extract
+print: record_linker
 
-extract: $(OBJS)
+record_linker: $(OBJS)
 	$(CC) $^ $(CFLAGS) -o $@
 
 %.o: %.c $(DEPS)
 	$(CC) -c $< $(CFLAGS) -o $@
 
 clean:
-	rm -f *.o extract
+	rm -f *.o record_linker

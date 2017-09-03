@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "extract.h"
+#include "record_linker.h"
 #include "jarowinkler.h"
 
 int main(int argc, char *argv[]) {

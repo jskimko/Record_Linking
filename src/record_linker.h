@@ -1,5 +1,5 @@
-#ifndef EXTRACT_H
-#define EXTRACT_H
+#ifndef RECORD_LINKER_H
+#define RECORD_LINKER_H
 
 struct entry_t {
     unsigned int recID;

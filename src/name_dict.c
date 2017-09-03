@@ -82,8 +82,6 @@ void sort_name_dict(name_dict_t *name_dict) {
 
 /* Print name dictionary. */
 void print_name_dict(name_dict_t *name_dict) {
-    printf("Printing standardized name dictionary:\n");
-
     name_dict_t *cur = name_dict;
     while (cur->next) {
         cur = cur->next;

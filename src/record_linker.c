@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     if (!entries_1851 || !entries_1881) exit_with_error("could not extract valid entries");
 
-    // Add names
+    // Add names to valid entries
     rc = add_names(argv[3], entries_1851);
     if (rc == -1) exit_with_error("could not add names to entries");
     rc = add_names(argv[4], entries_1881);
@@ -213,6 +213,7 @@ int standardize_fnames(char *filename, entry_t *entries) {
 #ifdef PRINT
     static int once=0;
     if (!once) {
+        printf("Printing standardized name dictionary:\n");
         print_name_dict(name_dict);
         once++;
     }

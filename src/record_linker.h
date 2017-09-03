@@ -22,13 +22,16 @@ typedef struct match_t match_t;
 entry_t *extract_valid_entries(char *filename, int year);
 
 /* Reads the name file and adds names to a list of valid entries. */
-void add_names(char *filename, entry_t *entries);
+int add_names(char *filename, entry_t *entries);
 
 /* Standardize first names. */
-void standardize_fnames(char *filenames, entry_t *entries);
+int standardize_fnames(char *filenames, entry_t *entries);
 
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
+
+/* Exit with an error message. */
+void exit_with_error(char *msg);
 
 #ifdef PRINT
 /* Print the contents of an entry list. */

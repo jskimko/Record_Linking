@@ -32,7 +32,6 @@ int main(int argc, char *argv[]) {
     // Standardize fnames
     standardize_fnames(argv[5], entries_1851);
     standardize_fnames(argv[5], entries_1881);
-    return 0;
 
 #ifdef PRINT
     // Print valid entries from each list
@@ -204,6 +203,14 @@ void standardize_fnames(char *filename, entry_t *entries) {
     name_dict_t *name_dict, *cur;
 
     name_dict = generate_name_dict(filename);
+#ifdef PRINT
+    static int once=0;
+    if (!once) {
+        print_name_dict(name_dict);
+        once++;
+    }
+#endif
+
 } // standardize_fnames
 
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {

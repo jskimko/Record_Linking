@@ -20,17 +20,20 @@ name_dict_t *generate_name_dict(char *filename) {
     // Remove header
     if (fgets(buf, sizeof(buf), fp) == NULL) {
         perror("extract:fgets");
+        fclose(fp);
         return NULL;
     }
 
     // Create name dictionary to map fname -> fname_std
     cur = name_dict = malloc(sizeof(name_dict_t));
     cur->next = NULL;
+    cur->prev = NULL;
 
     while (fgets(buf, sizeof(buf), fp)) {
         // create new mapping
         name_dict_t *new_map = malloc(sizeof(name_dict_t));
         new_map->next = NULL;
+        new_map->prev = cur;
 
         // fname
         col = strtok(buf, ",");
@@ -47,19 +50,43 @@ name_dict_t *generate_name_dict(char *filename) {
         cur->next = new_map;
         cur = cur->next;
     }
+    fclose(fp);
 
+    sort_name_dict(name_dict);
+    return name_dict;
+}
+
+/* Helper function to sort name dictionary. */
+void sort_name_dict(name_dict_t *name_dict) {
+    name_dict_t *cur, *swp;
+    char *tmp;
+
+    cur = name_dict->next->next;
+
+    while (cur != NULL) {
+        swp = cur;
+        while ((swp->fname[0] < swp->prev->fname[0]) && (swp != name_dict)) {
+            tmp = swp->prev->fname;
+            swp->prev->fname = swp->fname;
+            swp->fname = tmp;
+            
+            tmp = swp->prev->fname_std;
+            swp->prev->fname_std = swp->fname_std;
+            swp->fname_std = tmp;
+
+            swp = swp->prev;
+        }
+        cur = cur->next;
+    }
+}
+
+/* Print name dictionary. */
+void print_name_dict(name_dict_t *name_dict) {
     printf("Printing standardized name dictionary:\n");
-    cur = name_dict;
+
+    name_dict_t *cur = name_dict;
     while (cur->next) {
         cur = cur->next;
         printf("%s %s\n", cur->fname, cur->fname_std);
     }
-
-    fclose(fp);
-
-}
-
-/* Sort name dictionary. */
-void sort_name_dict(name_dict_t *name_dict) {
-
 }

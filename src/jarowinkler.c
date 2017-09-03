@@ -2,6 +2,7 @@
 #include <string.h>
 #include "jarowinkler.h"
 
+/* Compute the Jaro distance between strings. */
 /* jaro() adapted from https://rosettacode.org/wiki/Jaro_distance#C */
 double jaro(const char *str1, const char *str2) {
     int len1, len2;                 // string lengths
@@ -82,6 +83,7 @@ double jaro(const char *str1, const char *str2) {
            ((n_matches - n_trans) / n_matches)) / 3.0;
 } // jaro
 
+/* Compute the Jaro-Winkler distance between strings. */
 double jarowinkler(const char *str1, const char *str2) {
     int l=0;                                // length of common prefix (max = 4)
     double p=0.1;                           // scaling factor

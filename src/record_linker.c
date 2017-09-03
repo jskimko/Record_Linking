@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
     return 0;
 } // main
 
+/* Extracts entries from data file where valid means male and below age 10. */
 entry_t *extract_valid_entries(char *filename, int year) {
     FILE *fp;
     char buf[4096];
@@ -147,6 +148,7 @@ entry_t *extract_valid_entries(char *filename, int year) {
     return entries;
 } // extract_valid_entries
 
+/* Reads the name file and adds names to a list of valid entries. */
 int add_names(char *filename, entry_t *entries) {
     FILE *fp;
     char buf[512];
@@ -203,6 +205,7 @@ int add_names(char *filename, entry_t *entries) {
     return 0;
 } // add_names
 
+/* Standardize first names. */
 int standardize_fnames(char *filename, entry_t *entries) {
     name_dict_t *name_dict;
 
@@ -218,6 +221,7 @@ int standardize_fnames(char *filename, entry_t *entries) {
     return 0;
 } // standardize_fnames
 
+/* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     match_t *ret, *cur_ret;
     entry_t *cur_1851, *cur_1881;
@@ -261,12 +265,14 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     return ret;
 } // find_matches
 
+/* Exit with an error message. */
 void exit_with_error(char *msg) {
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, msg);
     exit(-1);
 }
 
 #ifdef PRINT
+/* Print the contents of an entry list. */
 void print_entries(entry_t *entries) {
     int count=0;
 
@@ -279,6 +285,7 @@ void print_entries(entry_t *entries) {
     printf("There were %d extracted entries.\n\n", count);
 } // print_entries
 
+/* Print the contents of a match list. */
 void print_matches(match_t *matches) {
     int count=0;
 
@@ -290,5 +297,4 @@ void print_matches(match_t *matches) {
     }
     printf("There were %d extracted matches.\n", count);
 } // print_matches
-
 #endif

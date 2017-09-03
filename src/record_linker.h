@@ -18,13 +18,6 @@ struct match_t {
 };
 typedef struct match_t match_t;
 
-struct name_dict_t {
-    char *fname;
-    char *fname_std;
-    struct name_dict_t *next;
-};
-typedef struct name_dict_t name_dict_t;
-
 /* Extracts entries from data file where valid means male and below age 10. */
 entry_t *extract_valid_entries(char *filename, int year);
 

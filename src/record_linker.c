@@ -3,6 +3,7 @@
 #include <string.h>
 #include "record_linker.h"
 #include "jarowinkler.h"
+#include "name_dict.h"
 
 int main(int argc, char *argv[]) {
     entry_t *entries_1851, *entries_1881;
@@ -200,58 +201,10 @@ void add_names(char *filename, entry_t *entries) {
 } // add_names
 
 void standardize_fnames(char *filename, entry_t *entries) {
-    FILE *fp;
-    char buf[512];
-    char *col, c;
     name_dict_t *name_dict, *cur;
-    int len, i;
 
-    // Open data file
-    if ((fp = fopen(filename, "r")) == NULL) {
-        perror("extract:fopen");
-        return;
-    }
-
-    // Remove header
-    if (fgets(buf, sizeof(buf), fp) == NULL) {
-        perror("extract:fgets");
-        return;
-    }
-
-    // Create name dictionary to map fname -> fname_std
-    cur = name_dict = malloc(sizeof(name_dict_t));
-    cur->next = NULL;
-
-    while (fgets(buf, sizeof(buf), fp)) {
-        // create new mapping
-        name_dict_t *new_map = malloc(sizeof(name_dict_t));
-        new_map->next = NULL;
-
-        // fname
-        col = strtok(buf, ",");
-        len = strlen(col);
-        new_map->fname = malloc(len+1);
-        strncpy(new_map->fname, col, len+1);
-
-        // fname_std
-        col = strtok(NULL, "\n");
-        len = strlen(col);
-        new_map->fname_std = malloc(len+1);
-        strncpy(new_map->fname_std, col, len+1);
-
-        cur->next = new_map;
-        cur = cur->next;
-    }
-
-    printf("Printing standardized name dictionary:\n");
-    cur = name_dict;
-    while (cur->next) {
-        cur = cur->next;
-        printf("%s %s\n", cur->fname, cur->fname_std);
-    }
-
-    fclose(fp);
-}
+    name_dict = generate_name_dict(filename);
+} // standardize_fnames
 
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     match_t *ret, *cur_ret;

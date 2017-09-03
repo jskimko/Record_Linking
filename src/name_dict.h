@@ -1,0 +1,17 @@
+#ifndef NAME_DICT_H
+#define NAME_DICT_H
+
+struct name_dict_t {
+    char *fname;
+    char *fname_std;
+    struct name_dict_t *next;
+};
+typedef struct name_dict_t name_dict_t;
+
+/* Generate sorted name dictionary. */
+name_dict_t *generate_name_dict(char *filename);
+
+/* Sort name dictionary. */
+void sort_name_dict(name_dict_t *name_dict);
+
+#endif

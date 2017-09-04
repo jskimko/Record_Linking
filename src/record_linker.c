@@ -179,6 +179,14 @@ int add_names(char *filename, entry_t *entries) {
         col = strtok(NULL, "\t");
         recID = atoi(col);
 
+        while (entries->recID < recID) {
+            entries = entries->next;
+        }
+        
+        if (entries->recID > recID) {
+            continue;
+        } 
+        
         if (entries->recID == recID) {
             // Pname = col 4
             strtok(NULL, "\t");
@@ -197,7 +205,7 @@ int add_names(char *filename, entry_t *entries) {
             strncpy(entries->lname, col, len+1);
             
             entries = entries->next;
-        }
+        } 
     }
 
     fclose(fp);

@@ -350,8 +350,14 @@ void print_matches(match_t *matches) {
 
     while (matches->next) {
         matches = matches->next;
-        print_entries(matches->entry_1851);
-        print_entries(matches->entry_1881);
+        printf("%d %s %s %c %d %s\t-->\t", matches->entry_1851->recID, 
+                matches->entry_1851->fname, matches->entry_1851->lname,
+                matches->entry_1851->sex, matches->entry_1851->age,
+                matches->entry_1851->par);
+        printf("%d %s %s %c %d %s\n", matches->entry_1881->recID,
+                matches->entry_1881->fname, matches->entry_1881->lname,
+                matches->entry_1881->sex, matches->entry_1881->age,
+                matches->entry_1881->par);
         count++;
     }
     printf("There were %d extracted matches.\n", count);

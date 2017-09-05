@@ -141,7 +141,7 @@ entry_t *extract_valid_entries(char *filename, int year) {
         new_entry->sex = sex;
         new_entry->age = age;
         new_entry->par = malloc(len+1);
-        strncpy(new_entry->par, col, len+1);
+        strcpy(new_entry->par, col);
         new_entry->fname = NULL;
         new_entry->lname = NULL;
         new_entry->next = NULL;
@@ -203,7 +203,7 @@ int add_names(char *filename, entry_t *entries) {
             len = strlen(name);
 
             entries->fname = malloc(len+1);
-            strncpy(entries->fname, name, len+1);
+            strcpy(entries->fname, name);
 
             // Sname = col 6
             strtok(NULL, "\t");
@@ -212,7 +212,7 @@ int add_names(char *filename, entry_t *entries) {
             len = strlen(name);
 
             entries->lname = malloc(len+1);
-            strncpy(entries->lname, name, len+1);
+            strcpy(entries->lname, name);
             
             entries = entries->next;
         } 
@@ -275,7 +275,9 @@ void standardize(entry_t *entry, name_dict_t *name_dict) {
         if (strcmp(entry->fname, name_dict->fname) == 0) {
             // copy standardized fname
             int len = strlen(name_dict->fname_std);
-            if (realloc(entry->fname, len+1) == NULL) return;
+            //free(entry->fname);
+            //entry->fname = malloc(len+1);
+            if ((entry->fname = realloc(entry->fname, len+1)) == NULL) return;
             strcpy(entry->fname, name_dict->fname_std);
 
             return; 

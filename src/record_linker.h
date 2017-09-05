@@ -30,8 +30,8 @@ entry_t *extract_valid_entries(char *filename, int year);
 /* Reads the name file and adds names to a list of valid entries. */
 int add_names(char *filename, entry_t *entries);
 
-/* Copy string without leading and trailing spaces. */
-void stripped_strcpy(char *dest, char *src);
+/* Copy first word without leading and trailing spaces. */
+void stripped_word_copy(char *dest, char *src);
 
 /* Standardize first names. */
 int standardize_fnames(char *filenames, entry_t *entries);

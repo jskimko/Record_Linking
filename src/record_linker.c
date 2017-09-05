@@ -200,7 +200,7 @@ int add_names(char *filename, entry_t *entries) {
             // Pname = col 4
             strtok(NULL, "\t");
             col = strtok(NULL, "\t");
-            stripped_strcpy(name, col);
+            stripped_word_copy(name, col);
             len = strlen(name);
 
             entries->fname = malloc(len+1);
@@ -209,7 +209,7 @@ int add_names(char *filename, entry_t *entries) {
             // Sname = col 6
             strtok(NULL, "\t");
             col = strtok(NULL, "\t");
-            stripped_strcpy(name, col);
+            stripped_word_copy(name, col);
             len = strlen(name);
 
             entries->lname = malloc(len+1);
@@ -223,12 +223,18 @@ int add_names(char *filename, entry_t *entries) {
     return 0;
 } // add_names
 
-/* Copy string without leading and trailing spaces. */
-void stripped_strcpy(char *dest, char *src) {
+/* Copy first word without leading and trailing spaces. */
+void stripped_word_copy(char *dest, char *src) {
+    unsigned int flag=0; // copy only first word
+
     while (*src) {
         if (*src != ' ') {
             *dest++ = *src;
+        } else {
+            if (flag == 0) flag++;
+            else break;
         }
+
         src++;
     }
     *dest = '\0';

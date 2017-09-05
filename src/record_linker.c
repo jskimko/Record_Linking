@@ -156,6 +156,7 @@ int add_names(char *filename, entry_t *entries) {
     char *col;
     int len;
     int recID;
+    char name[32]; // stores stripped names
 
     // Open data file
     if ((fp = fopen(filename, "r")) == NULL) {
@@ -193,18 +194,20 @@ int add_names(char *filename, entry_t *entries) {
             // Pname = col 4
             strtok(NULL, "\t");
             col = strtok(NULL, "\t");
+            stripped_strcpy(name, col);
+            len = strlen(name);
 
-            len = strlen(col);
             entries->fname = malloc(len+1);
-            strncpy(entries->fname, col, len+1);
+            strncpy(entries->fname, name, len+1);
 
             // Sname = col 6
             strtok(NULL, "\t");
             col = strtok(NULL, "\t");
-            len = strlen(col);
+            stripped_strcpy(name, col);
+            len = strlen(name);
 
             entries->lname = malloc(len+1);
-            strncpy(entries->lname, col, len+1);
+            strncpy(entries->lname, name, len+1);
             
             entries = entries->next;
         } 
@@ -213,6 +216,17 @@ int add_names(char *filename, entry_t *entries) {
     fclose(fp);
     return 0;
 } // add_names
+
+/* Copy string without leading and trailing spaces. */
+void stripped_strcpy(char *dest, char *src) {
+    while (*src) {
+        if (*src != ' ') {
+            *dest++ = *src;
+        }
+        src++;
+    }
+    *dest = '\0';
+}
 
 /* Standardize first names. */
 int standardize_fnames(char *filename, entry_t *entries) {
@@ -245,7 +259,7 @@ void standardize(entry_t *entry, name_dict_t *name_dict) {
 
     // lookup by first letter
     name_dict = name_dict->next;
-    while (name_dict && (entry->fname[0] < name_dict->fname[0])) {
+    while (name_dict && (entry->fname[0] > name_dict->fname[0])) {
         name_dict = name_dict->next;
     }
 

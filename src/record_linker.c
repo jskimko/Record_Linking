@@ -108,6 +108,7 @@ entry_t *extract_valid_entries(char *filename, int year) {
 
     // Store valid entries
     cur = entries = malloc(sizeof(entry_t));
+    cur->fname = cur->lname = NULL; cur->par = NULL;
     cur->next = NULL;
 
     for (i=0; i<n_lines; i++) { 
@@ -275,8 +276,6 @@ void standardize(entry_t *entry, name_dict_t *name_dict) {
         if (strcmp(entry->fname, name_dict->fname) == 0) {
             // copy standardized fname
             int len = strlen(name_dict->fname_std);
-            //free(entry->fname);
-            //entry->fname = malloc(len+1);
             if ((entry->fname = realloc(entry->fname, len+1)) == NULL) return;
             strcpy(entry->fname, name_dict->fname_std);
 

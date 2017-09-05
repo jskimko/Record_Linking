@@ -87,4 +87,5 @@ void print_name_dict(name_dict_t *name_dict) {
         cur = cur->next;
         printf("%s %s\n", cur->fname, cur->fname_std);
     }
+    printf("\n");
 }

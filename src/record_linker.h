@@ -1,5 +1,6 @@
 #ifndef RECORD_LINKER_H
 #define RECORD_LINKER_H
+#include "name_dict.h"
 
 struct entry_t {
     unsigned int recID;
@@ -26,6 +27,9 @@ int add_names(char *filename, entry_t *entries);
 
 /* Standardize first names. */
 int standardize_fnames(char *filenames, entry_t *entries);
+
+/* Standardizes first name in one entry. */
+void standardize(entry_t *entry, name_dict_t *name_dict);
 
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);

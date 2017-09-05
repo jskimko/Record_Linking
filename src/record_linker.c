@@ -37,8 +37,9 @@ int main(int argc, char *argv[]) {
 
 #ifdef PRINT
     // Print valid entries from each list
-    printf("Printing valid entries:\n");
+    printf("Printing valid entries from file 1:\n");
     print_entries(entries_1851);
+    printf("Printing valid entries from file 2:\n");
     print_entries(entries_1881);
 #endif
 
@@ -180,6 +181,14 @@ int add_names(char *filename, entry_t *entries) {
         col = strtok(NULL, "\t");
         recID = atoi(col);
 
+        while (entries->recID < recID) {
+            entries = entries->next;
+        }
+        
+        if (entries->recID > recID) {
+            continue;
+        } 
+        
         if (entries->recID == recID) {
             // Pname = col 4
             strtok(NULL, "\t");
@@ -198,7 +207,7 @@ int add_names(char *filename, entry_t *entries) {
             strncpy(entries->lname, col, len+1);
             
             entries = entries->next;
-        }
+        } 
     }
 
     fclose(fp);
@@ -210,6 +219,8 @@ int standardize_fnames(char *filename, entry_t *entries) {
     name_dict_t *name_dict;
 
     name_dict = generate_name_dict(filename);
+    if (name_dict == NULL) return -1;
+
 #ifdef PRINT
     static int once=0;
     if (!once) {
@@ -219,8 +230,41 @@ int standardize_fnames(char *filename, entry_t *entries) {
     }
 #endif
 
+    while (entries->next) {
+        entries = entries->next;
+        standardize(entries, name_dict);
+    }
+    
     return 0;
 } // standardize_fnames
+
+/* Standardizes first name in one entry. */
+void standardize(entry_t *entry, name_dict_t *name_dict) {
+    // no name
+    if (entry->fname == NULL) return;
+
+    // lookup by first letter
+    name_dict = name_dict->next;
+    while (name_dict && (entry->fname[0] < name_dict->fname[0])) {
+        name_dict = name_dict->next;
+    }
+
+    // find full match
+    while (name_dict && (entry->fname[0] == name_dict->fname[0])) {
+        if (strcmp(entry->fname, name_dict->fname) == 0) {
+            // copy standardized fname
+            int len = strlen(name_dict->fname_std);
+            if (realloc(entry->fname, len+1) == NULL) return;
+            strcpy(entry->fname, name_dict->fname_std);
+
+            return; 
+        }
+        name_dict = name_dict->next;
+    }
+
+    // no match
+    return;
+}
 
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {

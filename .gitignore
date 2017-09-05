@@ -1,0 +1,4 @@
+src/data
+src/*.o
+src/record_linker
+refs/

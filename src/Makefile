@@ -8,6 +8,9 @@ all: record_linker
 print: CFLAGS += -DPRINT
 print: record_linker
 
+debug: CFLAGS += -g
+debug: record_linker
+
 record_linker: $(OBJS)
 	$(CC) $^ $(CFLAGS) -o $@
 

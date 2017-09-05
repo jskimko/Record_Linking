@@ -21,19 +21,19 @@ int main(int argc, char *argv[]) {
     entries_1851 = extract_valid_entries(argv[1], 1851);
     entries_1881 = extract_valid_entries(argv[2], 1881);
 
-    if (!entries_1851 || !entries_1881) exit_with_error("could not extract valid entries");
+    if (!entries_1851 || !entries_1881) EXIT_WITH_ERROR("could not extract valid entries");
 
     // Add names to valid entries
     rc = add_names(argv[3], entries_1851);
-    if (rc == -1) exit_with_error("could not add names to entries");
+    if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
     rc = add_names(argv[4], entries_1881);
-    if (rc == -1) exit_with_error("could not add names to entries");
+    if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
 
     // Standardize fnames
     rc = standardize_fnames(argv[5], entries_1851);
-    if (rc == -1) exit_with_error("could not standardize fnames");
+    if (rc == -1) EXIT_WITH_ERROR("could not standardize fnames");
     rc = standardize_fnames(argv[5], entries_1881);
-    if (rc == -1) exit_with_error("could not standardize fnames");
+    if (rc == -1) EXIT_WITH_ERROR("could not standardize fnames");
 
 #ifdef PRINT
     // Print valid entries from each list
@@ -323,12 +323,6 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
 
     return ret;
 } // find_matches
-
-/* Exit with an error message. */
-void exit_with_error(char *msg) {
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, msg);
-    exit(-1);
-}
 
 #ifdef PRINT
 /* Print the contents of an entry list. */

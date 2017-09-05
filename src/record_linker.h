@@ -2,6 +2,10 @@
 #define RECORD_LINKER_H
 #include "name_dict.h"
 
+/* Exit with an error message. */
+#define EXIT_WITH_ERROR(msg) { fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, msg); exit(-1); }
+
+/* Stores relevant information for one entry. */
 struct entry_t {
     unsigned int recID;
     char *fname, *lname;
@@ -12,6 +16,7 @@ struct entry_t {
 };
 typedef struct entry_t entry_t;
 
+/* Stores one potential match consisting of two entries. */
 struct match_t {
     entry_t *entry_1851;
     entry_t *entry_1881;
@@ -36,9 +41,6 @@ void standardize(entry_t *entry, name_dict_t *name_dict);
 
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
-
-/* Exit with an error message. */
-void exit_with_error(char *msg);
 
 #ifdef PRINT
 /* Print the contents of an entry list. */

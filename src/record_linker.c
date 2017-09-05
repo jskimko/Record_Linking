@@ -52,6 +52,11 @@ int main(int argc, char *argv[]) {
     print_matches(matches);
 #endif
 
+    // Free data
+    free_entries(entries_1851);
+    free_entries(entries_1881);
+    free_matches(matches);
+
     return 0;
 } // main
 
@@ -248,6 +253,8 @@ int standardize_fnames(char *filename, entry_t *entries) {
         entries = entries->next;
         standardize(entries, name_dict);
     }
+
+    free_name_dict(name_dict);
     
     return 0;
 } // standardize_fnames
@@ -323,6 +330,35 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
 
     return ret;
 } // find_matches
+
+/* Free entry_t list. */
+void free_entries(entry_t *entries) {
+    entry_t *tmp;
+
+    while (entries) {
+        tmp = entries;
+        free(entries->fname);
+        free(entries->lname);
+        free(entries->par);
+
+        entries = entries->next;
+        free(tmp);
+    }
+    entries = NULL;
+}
+
+/* Free match_t list. */
+void free_matches(match_t *matches) {
+    match_t *tmp;
+
+    while (matches) {
+        tmp = matches;
+
+        matches = matches->next;
+        free(tmp);
+    }
+    matches = NULL;
+}
 
 #ifdef PRINT
 /* Print the contents of an entry list. */

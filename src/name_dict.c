@@ -26,6 +26,8 @@ name_dict_t *generate_name_dict(char *filename) {
 
     // Create name dictionary to map fname -> fname_std
     cur = name_dict = malloc(sizeof(name_dict_t));
+    cur->fname = NULL;
+    cur->fname_std = NULL;
     cur->next = NULL;
     cur->prev = NULL;
 
@@ -78,6 +80,21 @@ void sort_name_dict(name_dict_t *name_dict) {
         }
         cur = cur->next;
     }
+}
+
+/* Free name_dict_t list. */
+void free_name_dict(name_dict_t *name_dict) {
+    name_dict_t *tmp;
+
+    while (name_dict) {
+        tmp = name_dict;
+        free(name_dict->fname);
+        free(name_dict->fname_std);
+
+        name_dict = name_dict->next;
+        free(tmp);
+    }
+    name_dict = NULL;
 }
 
 /* Print name dictionary. */

@@ -42,6 +42,12 @@ void standardize(entry_t *entry, name_dict_t *name_dict);
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
 
+/* Free entry_t list. */
+void free_entries(entry_t *entries);
+
+/* Free match_t list. */
+void free_matches(match_t *matches);
+
 #ifdef PRINT
 /* Print the contents of an entry list. */
 void print_entries(entry_t *entries);

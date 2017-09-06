@@ -306,13 +306,15 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
             cur_1881 = cur_1881->next;
 
             // age criteria
-            if (cur_1851->age + 30 - cur_1881->age > 5) continue;
+            if (cur_1851->age + 30 - cur_1881->age > 3) continue;
 
             // jarowinkler criteria
             if (!cur_1851->fname || !cur_1881->fname) continue;
             if (1-jarowinkler(cur_1851->fname, cur_1881->fname) > 0.2) continue;
             if (!cur_1851->lname || !cur_1881->lname) continue;
             if (1-jarowinkler(cur_1851->lname, cur_1881->lname) > 0.2) continue;
+            if (!cur_1851->par || !cur_1881->par) continue;
+            if (1-jarowinkler(cur_1851->par, cur_1881->par) > 0.2) continue;
             
             // save match
             match_t *new_match = malloc(sizeof(match_t));

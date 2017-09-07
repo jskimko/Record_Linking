@@ -34,10 +34,7 @@ int add_names(char *filename, entry_t *entries);
 void stripped_word_copy(char *dest, char *src);
 
 /* Standardize first names. */
-int standardize_fnames(char *filenames, entry_t *entries);
-
-/* Standardizes first name in one entry. */
-void standardize(entry_t *entry, name_dict_t *name_dict);
+void  standardize_fnames(entry_t *entries, name_dict_t *name_dict);
 
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
@@ -51,9 +48,9 @@ void free_matches(match_t *matches);
 #ifdef PRINT
 /* Print the contents of an entry list. */
 void print_entries(entry_t *entries);
+#endif
 
 /* Print the contents of a match list. */
 void print_matches(match_t *matches);
-#endif
 
 #endif

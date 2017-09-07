@@ -1,14 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "record_linker.h"
 #include "jarowinkler.h"
 #include "name_dict.h"
 
 int main(int argc, char *argv[]) {
     entry_t *entries_1851, *entries_1881;
+    name_dict_t *name_dict;
     match_t *matches;
     int rc;
+
+    clock_t start;
 
     // Check arguments
     if (argc != 6) {
@@ -18,22 +22,46 @@ int main(int argc, char *argv[]) {
     }
 
     // Extract valid entries from data files
+    fprintf(stderr, "Extracting file 1 ...... "); start = clock();
     entries_1851 = extract_valid_entries(argv[1], 1851);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC); 
+    fprintf(stderr, "Extracting file 2 ...... "); start = clock();
     entries_1881 = extract_valid_entries(argv[2], 1881);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
     if (!entries_1851 || !entries_1881) EXIT_WITH_ERROR("could not extract valid entries");
 
     // Add names to valid entries
+    fprintf(stderr, "Adding names 1 ......... "); start = clock();
     rc = add_names(argv[3], entries_1851);
-    if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
-    rc = add_names(argv[4], entries_1881);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
     if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
 
+    fprintf(stderr, "Adding names 2 ......... "); start = clock();
+    rc = add_names(argv[4], entries_1881);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
+    if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
+
+    // Generate name dictionary
+    name_dict = generate_name_dict(argv[5]);
+    if (name_dict == NULL) EXIT_WITH_ERROR("could not generate name dictionary");
+
+#ifdef PRINT
+    printf("Printing standardized name dictionary:\n");
+    print_name_dict(name_dict);
+#endif
+
     // Standardize fnames
-    rc = standardize_fnames(argv[5], entries_1851);
-    if (rc == -1) EXIT_WITH_ERROR("could not standardize fnames");
-    rc = standardize_fnames(argv[5], entries_1881);
-    if (rc == -1) EXIT_WITH_ERROR("could not standardize fnames");
+    fprintf(stderr, "Standardizing names 1 .. "); start = clock();
+    standardize_fnames(entries_1851, name_dict);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
+
+    fprintf(stderr, "Standardizing names 2 .. "); start = clock();
+    standardize_fnames(entries_1881, name_dict);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
+
+    // Free name dictionary
+    free_name_dict(name_dict);
 
 #ifdef PRINT
     // Print valid entries from each list
@@ -44,13 +72,13 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Find matches
+    fprintf(stderr, "Finding matches ........ "); start = clock();
     matches = find_matches(entries_1851, entries_1881);
+    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
-#ifdef PRINT
     // Print matches
     printf("Printing matches:\n");
     print_matches(matches);
-#endif
 
     // Free data
     free_entries(entries_1851);
@@ -190,6 +218,10 @@ int add_names(char *filename, entry_t *entries) {
 
         while (entries->recID < recID) {
             entries = entries->next;
+            if (entries == NULL) {
+                fclose(fp);
+                return 1;
+            }
         }
         
         if (entries->recID > recID) {
@@ -241,58 +273,37 @@ void stripped_word_copy(char *dest, char *src) {
 }
 
 /* Standardize first names. */
-int standardize_fnames(char *filename, entry_t *entries) {
-    name_dict_t *name_dict;
-
-    name_dict = generate_name_dict(filename);
-    if (name_dict == NULL) return -1;
-
-#ifdef PRINT
-    static int once=0;
-    if (!once) {
-        printf("Printing standardized name dictionary:\n");
-        print_name_dict(name_dict);
-        once++;
-    }
-#endif
+void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
+    name_dict_t *head = name_dict;
 
     while (entries->next) {
         entries = entries->next;
-        standardize(entries, name_dict);
-    }
+        name_dict = head->next;
 
-    free_name_dict(name_dict);
-    
-    return 0;
-} // standardize_fnames
+        // no name
+        if (entries->fname == NULL) continue;
 
-/* Standardizes first name in one entry. */
-void standardize(entry_t *entry, name_dict_t *name_dict) {
-    // no name
-    if (entry->fname == NULL) return;
-
-    // lookup by first letter
-    name_dict = name_dict->next;
-    while (name_dict && (entry->fname[0] > name_dict->fname[0])) {
-        name_dict = name_dict->next;
-    }
-
-    // find full match
-    while (name_dict && (entry->fname[0] == name_dict->fname[0])) {
-        if (strcmp(entry->fname, name_dict->fname) == 0) {
-            // copy standardized fname
-            int len = strlen(name_dict->fname_std);
-            if ((entry->fname = realloc(entry->fname, len+1)) == NULL) return;
-            strcpy(entry->fname, name_dict->fname_std);
-
-            return; 
+        // lookup by first letter
+        while (name_dict && (entries->fname[0] > name_dict->fname[0])) {
+            name_dict = name_dict->next;
         }
-        name_dict = name_dict->next;
-    }
 
-    // no match
+        // find full match with same first letter
+        while (name_dict && (entries->fname[0] == name_dict->fname[0])) {
+            if (strcmp(entries->fname, name_dict->fname) == 0) {
+                // copy standardized fname
+                int len = strlen(name_dict->fname_std);
+                if ((entries->fname = realloc(entries->fname, len+1)) == NULL) break;
+                strcpy(entries->fname, name_dict->fname_std);
+
+                break; 
+            }
+            name_dict = name_dict->next;
+        }
+    }
+    
     return;
-}
+} // standardize_fnames
 
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
@@ -300,6 +311,9 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
     entry_t *cur_1851, *cur_1881;
     
     cur_ret = ret = malloc(sizeof(match_t));
+    ret->entry_1851 = NULL; ret->entry_1881 = NULL;
+    ret->next = NULL;
+
     cur_1851 = entries_1851;
     cur_1881 = entries_1881;
 
@@ -380,8 +394,9 @@ void print_entries(entry_t *entries) {
                                       entries->sex, entries->age, entries->par);
         count++;
     }
-    printf("There were %d extracted entries.\n\n", count);
+    fprintf(stderr, "There were %d extracted entries.\n\n", count);
 } // print_entries
+#endif
 
 /* Print the contents of a match list. */
 void print_matches(match_t *matches) {
@@ -399,6 +414,5 @@ void print_matches(match_t *matches) {
                 matches->entry_1881->par);
         count++;
     }
-    printf("There were %d extracted matches.\n", count);
+    fprintf(stderr, "There were %d extracted matches.\n", count);
 } // print_matches
-#endif

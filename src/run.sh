@@ -77,9 +77,10 @@ fi
 ###############################
 #       COMPILE AND RUN       #
 ###############################
-args="\"$data1.sort\" \"$data2.sort\" \"$names1.sort\" \"$names2.sort\""
-args="$args \"$std_names.sort\" $year1 $year2 $sex"
+args="$data1.sort $data2.sort $names1.sort $names2.sort"
+args="$args $std_names.sort $year1 $year2 $sex"
 args="$args $min_age1 $max_age1 $min_age2 $max_age2"
 echo "Compiling and running..."
+echo "./record_linker $args"
 make && ./record_linker $args
 echo "Done."

@@ -13,7 +13,7 @@ std_names = "/home/bird/record_linking/src/data/Nickname_std.csv"
 year1     = "1851"
 year2     = "1881"
 
-# Target sex and age
+# Target gender and age range
 sex       = "M"
 min_age1  = "0"
 max_age1  = "10"

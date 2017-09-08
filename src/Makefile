@@ -3,6 +3,8 @@ CFLAGS=-O3 -Wall
 OBJS=record_linker.o jarowinkler.o name_dict.o
 DEPS=record_linker.h jarowinkler.h name_dict.h
 
+all: record_linker
+
 print: CFLAGS += -DPRINT
 print: record_linker
 

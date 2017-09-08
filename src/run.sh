@@ -9,7 +9,7 @@ fi
 #       READ CONFIG       #
 ###########################
 
-echo -n "Reading configuration file... "
+echo "Reading configuration file... "
 data1=`grep data1 $1 | awk -F'"' '{print $2}'`
 data2=`grep data2 $1 | awk -F'"' '{print $2}'`
 names1=`grep names1 $1 | awk -F'"' '{print $2}'`
@@ -36,7 +36,6 @@ not_empty std_names "$std_names" ; not_empty sex      "$sex";
 not_empty year1     "$year1"     ; not_empty year2    "$year2";
 not_empty min_age1  "$min_age1"  ; not_empty max_age1 "$max_age1";
 not_empty min_age2  "$min_age2"  ; not_empty max_age2 "$max_age2";
-echo "Done."
 
 #echo $data1; echo $data2; echo $names1; echo $names2; echo $std_names;
 #echo $year1; echo $year2; echo $sex;
@@ -48,7 +47,7 @@ echo "Done."
 #####################
 
 # Sort data and name files
-echo -n "Sorting files if necessary... "
+echo "Sorting files if necessary... "
 for f in "$data1" "$data2" "$names1" "$names2"; do
     if [ ! -f "$f" ]; then
         echo "run.sh:error: invalid path '$f'" >&2
@@ -56,10 +55,9 @@ for f in "$data1" "$data2" "$names1" "$names2"; do
     fi
 
     if [ ! -f "$f.sort" ]; then
-        path=`readlink -f "$f" | sed 's:\(.*\)/.*:\1:'`
-        file=`readlink -f "$f" | sed 's:.*/\(.*\):\1:'`
-        echo "Sorting $file..."
-        time sort -T $HOME -snk2 "$f" > $path/$file.sort
+        echo -n "  Sorting $f... "
+        timing=`{ time sort -T $HOME -snk2 "$f" > "$f.sort"; } 2>&1 | grep real`
+        echo `echo $timing | awk '{printf $2}'`
     fi
 done
 
@@ -69,11 +67,19 @@ if [ ! -f "$std_names" ]; then
     exit
 fi
 
-if [ ! -f "$f.sort" ]; then
-    path=`readlink -f "$std_names" | sed 's:\(.*\)/.*:\1:'`
-    file=`readlink -f "$std_names" | sed 's:.*/\(.*\):\1:'`
-    echo "Sorting $file..."
-    time sort -T $HOME -sk1.1,1.1 "$std_names" > $path/$file.sort
+if [ ! -f "$std_names.sort" ]; then
+    echo -n "  Sorting $std_names... "
+    timing=`{ time sort -T $HOME -sk1.1,1.1 "$std_names" > "$std_names.sort"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{printf $2}'`
 fi
-echo "Done."
 
+
+###############################
+#       COMPILE AND RUN       #
+###############################
+args="\"$data1.sort\" \"$data2.sort\" \"$names1.sort\" \"$names2.sort\""
+args="$args \"$std_names.sort\" $year1 $year2 $sex"
+args="$args $min_age1 $max_age1 $min_age2 $max_age2"
+echo "Compiling and running..."
+make && ./record_linker $args
+echo "Done."

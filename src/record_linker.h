@@ -18,14 +18,14 @@ typedef struct entry_t entry_t;
 
 /* Stores one potential match consisting of two entries. */
 struct match_t {
-    entry_t *entry_1851;
-    entry_t *entry_1881;
+    entry_t *entry1;
+    entry_t *entry2;
     struct match_t *next;
 };
 typedef struct match_t match_t;
 
-/* Extracts entries from data file where valid means male and below age 10. */
-entry_t *extract_valid_entries(char *filename, int year);
+/* Extracts entries from data file based on sex and age. */
+entry_t *extract_valid_entries(char *filename, int id);
 
 /* Reads the name file and adds names to a list of valid entries. */
 int add_names(char *filename, entry_t *entries);
@@ -37,7 +37,7 @@ void stripped_word_copy(char *dest, char *src);
 void  standardize_fnames(entry_t *entries, name_dict_t *name_dict);
 
 /* Find matches between two entry lists using age and JW distance. */
-match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881);
+match_t *find_matches(entry_t *entries1, entry_t *entries2);
 
 /* Free entry_t list. */
 void free_entries(entry_t *entries);

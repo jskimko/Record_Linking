@@ -6,44 +6,61 @@
 #include "jarowinkler.h"
 #include "name_dict.h"
 
+unsigned char year1, year2;
+unsigned char min_age1, max_age1;
+unsigned char min_age2, max_age2;
+char sex_global;
+
 int main(int argc, char *argv[]) {
-    entry_t *entries_1851, *entries_1881;
+    char *data1, *data2;    // data filenames
+    char *names1, *names2;  // names filenames
+    char *std_names;        // std_names filenames
+    entry_t *entries1, *entries2;
     name_dict_t *name_dict;
     match_t *matches;
     int rc;
 
     clock_t start;
 
-    // Check arguments
-    if (argc != 6) {
-        fprintf(stderr, "usage: %s data_1851 data_1881 names_1851 names_1881 "
-                        "fnames_std\n", argv[0]);
+    // Parse arguments
+    if (argc != 13) {
+        //fprintf(stderr, "usage: %s data1 data2 names1 names2 std_names "
+        //      "year1 year2 sex min_age1 max_age1 min_age2 max_age2\n", argv[0]);
+        fprintf(stderr, "Please use the run.sh script.\n");
         return -1;
     }
 
+    data1 = argv[1]; data2 = argv[2];
+    names1 = argv[3]; names2 = argv[4];
+    std_names = argv[5];
+    year1 = atoi(argv[6]); year2 = atoi(argv[7]);
+    sex_global = argv[8][0];
+    min_age1 = atoi(argv[9]); max_age1 = atoi(argv[10]);
+    min_age2 = atoi(argv[11]); max_age2 = atoi(argv[11]);
+
     // Extract valid entries from data files
-    fprintf(stderr, "Extracting file 1 ...... "); start = clock();
-    entries_1851 = extract_valid_entries(argv[1], 1851);
+    fprintf(stderr, "Extracting data 1 ...... "); start = clock();
+    entries1 = extract_valid_entries(data1, 1);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC); 
-    fprintf(stderr, "Extracting file 2 ...... "); start = clock();
-    entries_1881 = extract_valid_entries(argv[2], 1881);
+    fprintf(stderr, "Extracting data 2 ...... "); start = clock();
+    entries2 = extract_valid_entries(data2, 2);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
-    if (!entries_1851 || !entries_1881) EXIT_WITH_ERROR("could not extract valid entries");
+    if (!entries1 || !entries2) EXIT_WITH_ERROR("could not extract valid entries");
 
     // Add names to valid entries
     fprintf(stderr, "Adding names 1 ......... "); start = clock();
-    rc = add_names(argv[3], entries_1851);
+    rc = add_names(names1, entries1);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
     if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
 
     fprintf(stderr, "Adding names 2 ......... "); start = clock();
-    rc = add_names(argv[4], entries_1881);
+    rc = add_names(names2, entries2);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
     if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
 
     // Generate name dictionary
-    name_dict = generate_name_dict(argv[5]);
+    name_dict = generate_name_dict(std_names);
     if (name_dict == NULL) EXIT_WITH_ERROR("could not generate name dictionary");
 
 #ifdef PRINT
@@ -53,11 +70,11 @@ int main(int argc, char *argv[]) {
 
     // Standardize fnames
     fprintf(stderr, "Standardizing names 1 .. "); start = clock();
-    standardize_fnames(entries_1851, name_dict);
+    standardize_fnames(entries1, name_dict);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
     fprintf(stderr, "Standardizing names 2 .. "); start = clock();
-    standardize_fnames(entries_1881, name_dict);
+    standardize_fnames(entries2, name_dict);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
     // Free name dictionary
@@ -66,14 +83,14 @@ int main(int argc, char *argv[]) {
 #ifdef PRINT
     // Print valid entries from each list
     printf("Printing valid entries from file 1:\n");
-    print_entries(entries_1851);
+    print_entries(entries1);
     printf("Printing valid entries from file 2:\n");
-    print_entries(entries_1881);
+    print_entries(entries2);
 #endif
 
     // Find matches
     fprintf(stderr, "Finding matches ........ "); start = clock();
-    matches = find_matches(entries_1851, entries_1881);
+    matches = find_matches(entries1, entries2);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
     // Print matches
@@ -81,22 +98,22 @@ int main(int argc, char *argv[]) {
     print_matches(matches);
 
     // Free data
-    free_entries(entries_1851);
-    free_entries(entries_1881);
+    free_entries(entries1);
+    free_entries(entries2);
     free_matches(matches);
 
     return 0;
 } // main
 
-/* Extracts entries from data file where valid means male and below age 10. */
-entry_t *extract_valid_entries(char *filename, int year) {
+/* Extracts entries from data file based on sex and age. */
+entry_t *extract_valid_entries(char *filename, int id) {
     FILE *fp;
     char buf[4096];
     char *col;
     int n_lines=0;
-    int min_age, max_age;
     int i,j;
     entry_t *entries, *cur;
+    int min_age, max_age;
 
     unsigned int recID;
     char sex;
@@ -122,17 +139,17 @@ entry_t *extract_valid_entries(char *filename, int year) {
     fseek(fp, 0, SEEK_SET);
     fgets(buf, sizeof(buf), fp);
 
-    // Set age limits
-    if (year == 1851) {
-        min_age = 0;
-        max_age = 10;
-    } else if (year == 1881) {
-        min_age = 27;
-        max_age = 43;
+    // Get age range
+    if (id == 1) {
+        min_age = min_age1;
+        max_age = max_age1;
+    } else if (id == 2) {
+        min_age = min_age2;
+        max_age = max_age2;
     } else {
-        fprintf(stderr, "%s:%d: invalid year '%d' for data file\n", __FILE__, __LINE__, year);
+        fprintf(stderr, "%s:%d: invalid id '%d'\n", __FILE__, __LINE__, id);
         return NULL;
-    }
+    } 
 
     // Store valid entries
     cur = entries = malloc(sizeof(entry_t));
@@ -151,7 +168,7 @@ entry_t *extract_valid_entries(char *filename, int year) {
         for (j=0; j<39; j++) strtok(NULL, "\t");
         col = strtok(NULL, "\t");
         sex = col[0];
-        if (sex == 'F') continue;
+        if ((sex != sex_global) && (sex != 'U')) continue;
 
         // Age = col 44
         strtok(NULL, "\t");
@@ -306,40 +323,41 @@ void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
 } // standardize_fnames
 
 /* Find matches between two entry lists using age and JW distance. */
-match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
+match_t *find_matches(entry_t *entries1, entry_t *entries2) {
     match_t *ret, *cur_ret;
-    entry_t *cur_1851, *cur_1881;
+    entry_t *cur1, *cur2;
+    int diff = (year2 > year1) ? year2-year1 : year1-year2;
     
     cur_ret = ret = malloc(sizeof(match_t));
-    ret->entry_1851 = NULL; ret->entry_1881 = NULL;
+    ret->entry2 = NULL; ret->entry2 = NULL;
     ret->next = NULL;
 
-    cur_1851 = entries_1851;
-    cur_1881 = entries_1881;
+    cur1 = entries1;
+    cur2 = entries2;
 
-    // for each 1851 entry
-    while (cur_1851->next) {
-        cur_1851 = cur_1851->next;
+    // for each entry1
+    while (cur1->next) {
+        cur1 = cur1->next;
 
-        // check each 1881 entry for satisfiability
-        while (cur_1881->next) {
-            cur_1881 = cur_1881->next;
+        // check each entry2 for satisfiability
+        while (cur2->next) {
+            cur2 = cur2->next;
 
             // age criteria
-            if (cur_1851->age + 30 - cur_1881->age > 3) continue;
+            if (cur1->age + diff - cur2->age > 3) continue;
 
             // jarowinkler criteria
-            if (!cur_1851->fname || !cur_1881->fname) continue;
-            if (1-jarowinkler(cur_1851->fname, cur_1881->fname) > 0.2) continue;
-            if (!cur_1851->lname || !cur_1881->lname) continue;
-            if (1-jarowinkler(cur_1851->lname, cur_1881->lname) > 0.2) continue;
-            if (!cur_1851->par || !cur_1881->par) continue;
-            if (1-jarowinkler(cur_1851->par, cur_1881->par) > 0.2) continue;
+            if (!cur1->fname || !cur2->fname) continue;
+            if (1-jarowinkler(cur1->fname, cur2->fname) > 0.2) continue;
+            if (!cur1->lname || !cur2->lname) continue;
+            if (1-jarowinkler(cur1->lname, cur2->lname) > 0.2) continue;
+            if (!cur1->par || !cur2->par) continue;
+            if (1-jarowinkler(cur1->par, cur2->par) > 0.2) continue;
             
             // save match
             match_t *new_match = malloc(sizeof(match_t));
-            new_match->entry_1851 = cur_1851;
-            new_match->entry_1881 = cur_1881;
+            new_match->entry1 = cur1;
+            new_match->entry2 = cur2;
             new_match->next = NULL;
 
             cur_ret->next = new_match;
@@ -347,8 +365,8 @@ match_t *find_matches(entry_t *entries_1851, entry_t *entries_1881) {
 
         }
 
-        // reset 1881 pointer
-        cur_1881 = entries_1881;
+        // reset 1st pointer
+        cur1 = entries1;
     }
 
     return ret;
@@ -404,14 +422,14 @@ void print_matches(match_t *matches) {
 
     while (matches->next) {
         matches = matches->next;
-        printf("%d %s %s %c %d %s\t-->\t", matches->entry_1851->recID, 
-                matches->entry_1851->fname, matches->entry_1851->lname,
-                matches->entry_1851->sex, matches->entry_1851->age,
-                matches->entry_1851->par);
-        printf("%d %s %s %c %d %s\n", matches->entry_1881->recID,
-                matches->entry_1881->fname, matches->entry_1881->lname,
-                matches->entry_1881->sex, matches->entry_1881->age,
-                matches->entry_1881->par);
+        printf("%d %s %s %c %d %s\t-->\t", matches->entry2->recID, 
+                matches->entry2->fname, matches->entry2->lname,
+                matches->entry2->sex, matches->entry2->age,
+                matches->entry2->par);
+        printf("%d %s %s %c %d %s\n", matches->entry2->recID,
+                matches->entry2->fname, matches->entry2->lname,
+                matches->entry2->sex, matches->entry2->age,
+                matches->entry2->par);
         count++;
     }
     fprintf(stderr, "There were %d extracted matches.\n", count);

@@ -365,8 +365,8 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2) {
 
         }
 
-        // reset 1st pointer
-        cur1 = entries1;
+        // reset entry2 pointer
+        cur2 = entries2;
     }
 
     return ret;
@@ -422,10 +422,10 @@ void print_matches(match_t *matches) {
 
     while (matches->next) {
         matches = matches->next;
-        printf("%d %s %s %c %d %s\t-->\t", matches->entry2->recID, 
-                matches->entry2->fname, matches->entry2->lname,
-                matches->entry2->sex, matches->entry2->age,
-                matches->entry2->par);
+        printf("%d %s %s %c %d %s\t-->\t", matches->entry1->recID, 
+                matches->entry1->fname, matches->entry1->lname,
+                matches->entry1->sex, matches->entry1->age,
+                matches->entry1->par);
         printf("%d %s %s %c %d %s\n", matches->entry2->recID,
                 matches->entry2->fname, matches->entry2->lname,
                 matches->entry2->sex, matches->entry2->age,

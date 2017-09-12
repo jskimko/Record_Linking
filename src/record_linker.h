@@ -25,7 +25,7 @@ struct match_t {
 typedef struct match_t match_t;
 
 /* Extracts entries from data file based on sex and age. */
-entry_t *extract_valid_entries(char *filename, int id);
+entry_t *extract_valid_entries(char *filename);
 
 /* Reads the name file and adds names to a list of valid entries. */
 int add_names(char *filename, entry_t *entries);

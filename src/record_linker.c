@@ -40,10 +40,10 @@ int main(int argc, char *argv[]) {
 
     // Extract valid entries from data files
     fprintf(stderr, "Extracting data 1 ...... "); start = clock();
-    entries1 = extract_valid_entries(data1, 1);
+    entries1 = extract_valid_entries(data1);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC); 
     fprintf(stderr, "Extracting data 2 ...... "); start = clock();
-    entries2 = extract_valid_entries(data2, 2);
+    entries2 = extract_valid_entries(data2);
     fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
     if (!entries1 || !entries2) EXIT_WITH_ERROR("could not extract valid entries");
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 } // main
 
 /* Extracts entries from data file based on sex and age. */
-entry_t *extract_valid_entries(char *filename, int id) {
+entry_t *extract_valid_entries(char *filename) {
     FILE *fp;
     char buf[4096];
     char *col;
@@ -119,6 +119,8 @@ entry_t *extract_valid_entries(char *filename, int id) {
     char sex;
     unsigned char age;
     int len;
+
+    static int id = 1; // first or second call
 
     // Open data file
     if ((fp = fopen(filename, "r")) == NULL) {
@@ -147,9 +149,11 @@ entry_t *extract_valid_entries(char *filename, int id) {
         min_age = min_age2;
         max_age = max_age2;
     } else {
-        fprintf(stderr, "%s:%d: invalid id '%d'\n", __FILE__, __LINE__, id);
+        fprintf(stderr, "%s:%d: cannot read more than two files\n", 
+                __FILE__, __LINE__);
         return NULL;
     } 
+    id++;
 
     // Store valid entries
     cur = entries = malloc(sizeof(entry_t));

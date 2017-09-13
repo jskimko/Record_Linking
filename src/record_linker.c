@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     year1 = atoi(argv[6]); year2 = atoi(argv[7]);
     sex_global = argv[8][0];
     min_age1 = atoi(argv[9]); max_age1 = atoi(argv[10]);
-    min_age2 = atoi(argv[11]); max_age2 = atoi(argv[11]);
+    min_age2 = atoi(argv[11]); max_age2 = atoi(argv[12]);
 
     // Extract valid entries from data files
     fprintf(stderr, "Extracting data 1 ...... "); start = clock();
@@ -330,7 +330,7 @@ void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
 match_t *find_matches(entry_t *entries1, entry_t *entries2) {
     match_t *ret, *cur_ret;
     entry_t *cur1, *cur2;
-    int diff = (year2 > year1) ? year2-year1 : year1-year2;
+    int diff = (year2 > year1) ? (year2-year1) : (year1-year2);
     
     cur_ret = ret = malloc(sizeof(match_t));
     ret->entry2 = NULL; ret->entry2 = NULL;
@@ -348,7 +348,7 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2) {
             cur2 = cur2->next;
 
             // age criteria
-            if (cur1->age + diff - cur2->age > 3) continue;
+            if ((cur1->age + diff - cur2->age) > 3) continue;
 
             // jarowinkler criteria
             if (!cur1->fname || !cur2->fname) continue;

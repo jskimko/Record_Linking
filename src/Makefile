@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O3 -Wall
+CFLAGS=-O3 -Wall -fopenmp
 OBJS=record_linker.o jarowinkler.o name_dict.o
 DEPS=record_linker.h jarowinkler.h name_dict.h
 

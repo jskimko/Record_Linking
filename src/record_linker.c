@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <omp.h>
 #include "record_linker.h"
 #include "jarowinkler.h"
 #include "name_dict.h"
@@ -20,8 +21,6 @@ int main(int argc, char *argv[]) {
     match_t *matches;
     int rc;
 
-    clock_t start;
-
     // Parse arguments
     if (argc != 13) {
         //fprintf(stderr, "usage: %s data1 data2 names1 names2 std_names "
@@ -39,25 +38,42 @@ int main(int argc, char *argv[]) {
     min_age2 = atoi(argv[11]); max_age2 = atoi(argv[12]);
 
     // Extract valid entries from data files
-    fprintf(stderr, "Extracting data 1 ...... "); start = clock();
-    entries1 = extract_valid_entries(data1);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC); 
-    fprintf(stderr, "Extracting data 2 ...... "); start = clock();
-    entries2 = extract_valid_entries(data2);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
+    fprintf(stderr, "Extracting data...\n");
+    #pragma omp parallel
+    #pragma omp single nowait
+    {
+        #pragma omp task
+        {
+            entries1 = extract_valid_entries(data1);
+            fprintf(stderr, "  Extracted data 1\n");
+        }
+        #pragma omp task
+        {
+            entries2 = extract_valid_entries(data2);
+            fprintf(stderr, "  Extracted data 2\n");
+        }
+    }
 
     if (!entries1 || !entries2) EXIT_WITH_ERROR("could not extract valid entries");
 
     // Add names to valid entries
-    fprintf(stderr, "Adding names 1 ......... "); start = clock();
-    rc = add_names(names1, entries1);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
-    if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
-
-    fprintf(stderr, "Adding names 2 ......... "); start = clock();
-    rc = add_names(names2, entries2);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
-    if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
+    fprintf(stderr, "Adding names...\n");
+    #pragma omp parallel private(rc)
+    #pragma omp single nowait
+    {
+        #pragma omp task
+        {
+            rc = add_names(names1, entries1);
+            if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
+            fprintf(stderr, "  Added names 1\n");
+        }
+        #pragma omp task
+        {
+            rc = add_names(names2, entries2);
+            if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
+            fprintf(stderr, "  Added names 2\n");
+        }
+    }
 
     // Generate name dictionary
     name_dict = generate_name_dict(std_names);
@@ -69,13 +85,21 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Standardize fnames
-    fprintf(stderr, "Standardizing names 1 .. "); start = clock();
-    standardize_fnames(entries1, name_dict);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
-
-    fprintf(stderr, "Standardizing names 2 .. "); start = clock();
-    standardize_fnames(entries2, name_dict);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
+    fprintf(stderr, "Standardizing names...\n");
+    #pragma omp parallel private(rc)
+    #pragma omp single nowait
+    {
+        #pragma omp task
+        {
+            standardize_fnames(entries1, name_dict);
+            fprintf(stderr, "  Standardized names 1\n");
+        }
+        #pragma omp task
+        {
+            standardize_fnames(entries2, name_dict);
+            fprintf(stderr, "  Standardized names 2\n");
+        }
+    }
 
     // Free name dictionary
     free_name_dict(name_dict);
@@ -89,9 +113,8 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Find matches
-    fprintf(stderr, "Finding matches ........ "); start = clock();
+    fprintf(stderr, "Finding matches...\n");
     matches = find_matches(entries1, entries2);
-    fprintf(stderr, "%9lfs\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
     // Print matches
     printf("Printing matches:\n");
@@ -114,6 +137,7 @@ entry_t *extract_valid_entries(char *filename) {
     int i,j;
     entry_t *entries, *cur;
     int min_age, max_age;
+    char *saveptr; // strtok_r
 
     unsigned int recID;
     char sex;
@@ -164,29 +188,30 @@ entry_t *extract_valid_entries(char *filename) {
         fgets(buf, sizeof(buf), fp);
 
         // RecID = col 2
-        strtok(buf, "\t");
-        col = strtok(NULL, "\t");
+        strtok_r(buf, "\t", &saveptr);
+        col = strtok_r(NULL, "\t", &saveptr);
         recID = atoi(col);
 
         // Sex = col 42
-        for (j=0; j<39; j++) strtok(NULL, "\t");
-        col = strtok(NULL, "\t");
+        for (j=0; j<39; j++) strtok_r(NULL, "\t", &saveptr);
+        col = strtok_r(NULL, "\t", &saveptr);
         sex = col[0];
         if ((sex != sex_global) && (sex != 'U')) continue;
 
         // Age = col 44
-        strtok(NULL, "\t");
-        col = strtok(NULL, "\t"); 
+        strtok_r(NULL, "\t", &saveptr);
+        col = strtok_r(NULL, "\t", &saveptr); 
         age = atoi(col);
         if (age < min_age || age > max_age) continue;
 
         // Std_Par = col 69
-        for (j=0; j<24; j++) strtok(NULL, "\t");
-        col = strtok(NULL, "\t");
+        for (j=0; j<24; j++) strtok_r(NULL, "\t", &saveptr);
+        col = strtok_r(NULL, "\t", &saveptr);
         len = strlen(col);
 
         // Save valid entry
-        entry_t *new_entry = malloc(sizeof(entry_t));
+        entry_t *new_entry;
+        new_entry = malloc(sizeof(entry_t));
         new_entry->recID = recID;
         new_entry->sex = sex;
         new_entry->age = age;
@@ -212,6 +237,7 @@ int add_names(char *filename, entry_t *entries) {
     int len;
     int recID;
     char name[32]; // stores stripped names
+    char *saveptr; // strtok_r
 
     // Open data file
     if ((fp = fopen(filename, "r")) == NULL) {
@@ -233,8 +259,8 @@ int add_names(char *filename, entry_t *entries) {
         if (!fgets(buf, sizeof(buf), fp)) break;
 
         // RecID = col 2
-        strtok(buf, "\t");
-        col = strtok(NULL, "\t");
+        strtok_r(buf, "\t", &saveptr);
+        col = strtok_r(NULL, "\t", &saveptr);
         recID = atoi(col);
 
         while (entries->recID < recID) {
@@ -251,8 +277,8 @@ int add_names(char *filename, entry_t *entries) {
         
         if (entries->recID == recID) {
             // Pname = col 4
-            strtok(NULL, "\t");
-            col = strtok(NULL, "\t");
+            strtok_r(NULL, "\t", &saveptr);
+            col = strtok_r(NULL, "\t", &saveptr);
             stripped_word_copy(name, col);
             len = strlen(name);
 
@@ -260,8 +286,8 @@ int add_names(char *filename, entry_t *entries) {
             strcpy(entries->fname, name);
 
             // Sname = col 6
-            strtok(NULL, "\t");
-            col = strtok(NULL, "\t");
+            strtok_r(NULL, "\t", &saveptr);
+            col = strtok_r(NULL, "\t", &saveptr);
             stripped_word_copy(name, col);
             len = strlen(name);
 

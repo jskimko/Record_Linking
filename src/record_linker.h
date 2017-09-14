@@ -45,12 +45,12 @@ void free_entries(entry_t *entries);
 /* Free match_t list. */
 void free_matches(match_t *matches);
 
+/* Write the contents of a match list. */
+void write_matches(FILE *fp, match_t *matches);
+
 #ifdef PRINT
 /* Print the contents of an entry list. */
 void print_entries(entry_t *entries);
 #endif
-
-/* Print the contents of a match list. */
-void print_matches(match_t *matches);
 
 #endif

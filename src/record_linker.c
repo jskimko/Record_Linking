@@ -16,18 +16,20 @@ int main(int argc, char *argv[]) {
     char *data1, *data2;    // data filenames
     char *names1, *names2;  // names filenames
     char *std_names;        // std_names filenames
+    char *filename;
     entry_t *entries1, *entries2;
     int count1, count2;
     name_dict_t *name_dict;
     match_t *matches;
     int rc;
+    FILE *fp;
 
 #ifdef _OPENMP
     double wtime;
 #endif
 
     // Parse arguments
-    if (argc != 13) {
+    if (argc != 14) {
         //fprintf(stderr, "usage: %s data1 data2 names1 names2 std_names "
         //      "year1 year2 sex min_age1 max_age1 min_age2 max_age2\n", argv[0]);
         fprintf(stderr, "Please use the run.sh script.\n");
@@ -41,7 +43,10 @@ int main(int argc, char *argv[]) {
     sex_global = argv[8][0];
     min_age1 = atoi(argv[9]); max_age1 = atoi(argv[10]);
     min_age2 = atoi(argv[11]); max_age2 = atoi(argv[12]);
+    filename = argv[13];
 
+    if ((fp = fopen(filename, "w")) == NULL) 
+        EXIT_WITH_ERROR("could not open output file");
 
     /* Extract valid entries from data files */
     fprintf(stderr, "Extracting data...\n");
@@ -169,9 +174,10 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-    /* Print matches */
-    printf("Printing matches:\n");
-    print_matches(matches);
+    /* Write matches */
+    printf("Writing matches to output file '%s':\n", filename);
+    write_matches(fp, matches);
+    fclose(fp);
 
 
     /* Free data */
@@ -509,20 +515,16 @@ void print_entries(entry_t *entries) {
 #endif
 
 /* Print the contents of a match list. */
-void print_matches(match_t *matches) {
-    int count=0;
-
+void write_matches(FILE *fp, match_t *matches) {
     while (matches->next) {
         matches = matches->next;
-        printf("%d %s %s %c %d %s\t-->\t", matches->entry1->recID, 
+        fprintf(fp, "%d %s %s %c %d %s\t-->\t", matches->entry1->recID, 
                 matches->entry1->fname, matches->entry1->lname,
                 matches->entry1->sex, matches->entry1->age,
                 matches->entry1->par);
-        printf("%d %s %s %c %d %s\n", matches->entry2->recID,
+        fprintf(fp, "%d %s %s %c %d %s\n", matches->entry2->recID,
                 matches->entry2->fname, matches->entry2->lname,
                 matches->entry2->sex, matches->entry2->age,
                 matches->entry2->par);
-        count++;
     }
-    fprintf(stderr, "There were %d extracted matches.\n", count);
 } // print_matches

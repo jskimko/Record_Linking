@@ -3,17 +3,18 @@
 #
 
 # Paths to files
-data1     = "/home/bird/record_linking/src/data/full_data/EW51.txt"
-data2     = "/home/bird/record_linking/src/data/full_data/EW81.txt"
-names1    = "/home/bird/record_linking/src/data/full_data/names51.txt"
-names2    = "/home/bird/record_linking/src/data/full_data/names81.txt"
-std_names = "/home/bird/record_linking/src/data/Nickname_std.csv"
+data1     = "data/full_data/EW51.txt"
+data2     = "data/full_data/EW81.txt"
+names1    = "data/full_data/names51.txt"
+names2    = "data/full_data/names81.txt"
+std_names = "data/Nickname_std.csv"
 
-# Years
+# Output file
+output    = "OUT"
+
+# Parameters
 year1     = "1851"
 year2     = "1881"
-
-# Target gender and age range
 sex       = "M"
 min_age1  = "0"
 max_age1  = "10"

@@ -17,9 +17,14 @@ int main(int argc, char *argv[]) {
     char *names1, *names2;  // names filenames
     char *std_names;        // std_names filenames
     entry_t *entries1, *entries2;
+    int count1, count2;
     name_dict_t *name_dict;
     match_t *matches;
     int rc;
+
+#ifdef _OPENMP
+    double wtime;
+#endif
 
     // Parse arguments
     if (argc != 13) {
@@ -37,36 +42,56 @@ int main(int argc, char *argv[]) {
     min_age1 = atoi(argv[9]); max_age1 = atoi(argv[10]);
     min_age2 = atoi(argv[11]); max_age2 = atoi(argv[12]);
 
-    // Extract valid entries from data files
+
+    /* Extract valid entries from data files */
     fprintf(stderr, "Extracting data...\n");
+
+#ifdef _OPENMP
+    wtime = omp_get_wtime();
+#endif
+
     #pragma omp parallel
     #pragma omp single nowait
     {
+        // Extract first data file
         #pragma omp task
         {
-            entries1 = extract_valid_entries(data1);
+            entries1 = extract_valid_entries(data1, &count1);
             fprintf(stderr, "  Extracted data 1\n");
         }
+        // Extract second data file
         #pragma omp task
         {
-            entries2 = extract_valid_entries(data2);
+            entries2 = extract_valid_entries(data2, &count2);
             fprintf(stderr, "  Extracted data 2\n");
         }
     }
 
+#ifdef _OPENMP
+    fprintf(stderr, "Took %lf seconds\n", omp_get_wtime() - wtime);
+#endif
+
     if (!entries1 || !entries2) EXIT_WITH_ERROR("could not extract valid entries");
 
-    // Add names to valid entries
+
+    /* Add names to valid entries */
     fprintf(stderr, "Adding names...\n");
+
+#ifdef _OPENMP
+    wtime = omp_get_wtime();
+#endif
+
     #pragma omp parallel private(rc)
     #pragma omp single nowait
     {
+        // Add names to first entry list
         #pragma omp task
         {
             rc = add_names(names1, entries1);
             if (rc == -1) EXIT_WITH_ERROR("could not add names to entries");
             fprintf(stderr, "  Added names 1\n");
         }
+        // Add names to second entry list
         #pragma omp task
         {
             rc = add_names(names2, entries2);
@@ -75,25 +100,33 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Generate name dictionary
+#ifdef _OPENMP
+    fprintf(stderr, "Took %lf seconds\n", omp_get_wtime() - wtime);
+#endif
+
+
+    /* Generate name dictionary */
     name_dict = generate_name_dict(std_names);
     if (name_dict == NULL) EXIT_WITH_ERROR("could not generate name dictionary");
 
-#ifdef PRINT
-    printf("Printing standardized name dictionary:\n");
-    print_name_dict(name_dict);
+
+    /* Standardize fnames */
+    fprintf(stderr, "Standardizing names...\n");
+
+#ifdef _OPENMP
+    wtime = omp_get_wtime();
 #endif
 
-    // Standardize fnames
-    fprintf(stderr, "Standardizing names...\n");
     #pragma omp parallel private(rc)
     #pragma omp single nowait
     {
+        // Standardize names in first entry list
         #pragma omp task
         {
             standardize_fnames(entries1, name_dict);
             fprintf(stderr, "  Standardized names 1\n");
         }
+        // Standardize names in second entry list
         #pragma omp task
         {
             standardize_fnames(entries2, name_dict);
@@ -101,40 +134,59 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Free name dictionary
-    free_name_dict(name_dict);
-
-#ifdef PRINT
-    // Print valid entries from each list
-    printf("Printing valid entries from file 1:\n");
-    print_entries(entries1);
-    printf("Printing valid entries from file 2:\n");
-    print_entries(entries2);
+#ifdef _OPENMP
+    fprintf(stderr, "Took %lf seconds\n", omp_get_wtime() - wtime);
 #endif
 
-    // Find matches
-    fprintf(stderr, "Finding matches...\n");
-    matches = find_matches(entries1, entries2);
 
-    // Print matches
+    /* Free name dictionary */
+    free_name_dict(name_dict);
+
+
+#ifdef PRINT
+    /* Print valid entries from each list */
+    printf("Printing valid entries from file 1:\n");
+    print_entries(entries1);
+    printf("There were %d extracted entries.\n\n", count1);
+
+    printf("Printing valid entries from file 2:\n");
+    print_entries(entries2);
+    printf("There were %d extracted entries.\n\n", count2);
+#endif
+
+
+    /* Find matches */
+    fprintf(stderr, "Finding matches...\n");
+
+#ifdef _OPENMP
+    wtime = omp_get_wtime();
+#endif
+
+    matches = find_matches(entries1, entries2, count1);
+
+#ifdef _OPENMP
+    fprintf(stderr, "Took %lf seconds\n", omp_get_wtime() - wtime);
+#endif
+
+
+    /* Print matches */
     printf("Printing matches:\n");
     print_matches(matches);
 
-    // Free data
-    free_entries(entries1);
-    free_entries(entries2);
+
+    /* Free data */
+    free_entries(entries1); free_entries(entries2);
     free_matches(matches);
 
     return 0;
 } // main
 
 /* Extracts entries from data file based on sex and age. */
-entry_t *extract_valid_entries(char *filename) {
+entry_t *extract_valid_entries(char *filename, int *count) {
     FILE *fp;
     char buf[4096];
     char *col;
-    int n_lines=0;
-    int i,j;
+    int i;
     entry_t *entries, *cur;
     int min_age, max_age;
     char *saveptr; // strtok_r
@@ -158,13 +210,6 @@ entry_t *extract_valid_entries(char *filename) {
         return NULL;
     }
 
-    // Count number of entries
-    while (fgets(buf, sizeof(buf), fp)) n_lines++;
-
-    // Go back to top of file and remove header
-    fseek(fp, 0, SEEK_SET);
-    fgets(buf, sizeof(buf), fp);
-
     // Get age range
     if (id == 1) {
         min_age = min_age1;
@@ -179,21 +224,20 @@ entry_t *extract_valid_entries(char *filename) {
     } 
     id++;
 
-    // Store valid entries
     cur = entries = malloc(sizeof(entry_t));
     cur->fname = cur->lname = NULL; cur->par = NULL;
     cur->next = NULL;
+    *count = 0;
 
-    for (i=0; i<n_lines; i++) { 
-        fgets(buf, sizeof(buf), fp);
-
+    // Store valid entries
+    while (fgets(buf, sizeof(buf), fp)) {
         // RecID = col 2
         strtok_r(buf, "\t", &saveptr);
         col = strtok_r(NULL, "\t", &saveptr);
         recID = atoi(col);
 
         // Sex = col 42
-        for (j=0; j<39; j++) strtok_r(NULL, "\t", &saveptr);
+        for (i=0; i<39; i++) strtok_r(NULL, "\t", &saveptr);
         col = strtok_r(NULL, "\t", &saveptr);
         sex = col[0];
         if ((sex != sex_global) && (sex != 'U')) continue;
@@ -205,7 +249,7 @@ entry_t *extract_valid_entries(char *filename) {
         if (age < min_age || age > max_age) continue;
 
         // Std_Par = col 69
-        for (j=0; j<24; j++) strtok_r(NULL, "\t", &saveptr);
+        for (i=0; i<24; i++) strtok_r(NULL, "\t", &saveptr);
         col = strtok_r(NULL, "\t", &saveptr);
         len = strlen(col);
 
@@ -223,6 +267,7 @@ entry_t *extract_valid_entries(char *filename) {
 
         cur->next = new_entry;
         cur = cur->next;
+        (*count)++;
     }
 
     fclose(fp);
@@ -353,7 +398,7 @@ void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
 } // standardize_fnames
 
 /* Find matches between two entry lists using age and JW distance. */
-match_t *find_matches(entry_t *entries1, entry_t *entries2) {
+match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     match_t *ret, *cur_ret;
     entry_t *cur1, *cur2;
     int diff = (year2 > year1) ? (year2-year1) : (year1-year2);
@@ -362,13 +407,27 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2) {
     ret->entry2 = NULL; ret->entry2 = NULL;
     ret->next = NULL;
 
-    cur1 = entries1;
+    cur1 = entries1->next;
     cur2 = entries2;
 
-    // for each entry1
-    while (cur1->next) {
-        cur1 = cur1->next;
+#pragma omp parallel
+{
+#ifdef _OPENMP
+    int n_threads = omp_get_num_threads();
+    int tid = omp_get_thread_num();
+    int iters = count / n_threads;
+    int i;
 
+    for (i = 0; i < iters * tid; i++) {
+        cur1 = cur1->next;
+    }
+
+    #pragma omp single
+    fprintf(stderr, "  Using %d threads...\n", n_threads);
+#endif
+
+    // for each entry1
+    while (cur1) {
         // check each entry2 for satisfiability
         while (cur2->next) {
             cur2 = cur2->next;
@@ -390,14 +449,20 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2) {
             new_match->entry2 = cur2;
             new_match->next = NULL;
 
+            #pragma omp critical
+            {
             cur_ret->next = new_match;
             cur_ret = cur_ret->next;
+            }
 
         }
 
         // reset entry2 pointer
         cur2 = entries2;
+
+        cur1 = cur1->next;
     }
+}
 
     return ret;
 } // find_matches
@@ -434,15 +499,12 @@ void free_matches(match_t *matches) {
 #ifdef PRINT
 /* Print the contents of an entry list. */
 void print_entries(entry_t *entries) {
-    int count=0;
-
     while (entries->next) {
         entries = entries->next;
         printf("%d %s %s %c %d %s\n", entries->recID, entries->fname, entries->lname,
                                       entries->sex, entries->age, entries->par);
         count++;
     }
-    fprintf(stderr, "There were %d extracted entries.\n\n", count);
 } // print_entries
 #endif
 

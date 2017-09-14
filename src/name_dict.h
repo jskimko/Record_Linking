@@ -18,9 +18,4 @@ void sort_name_dict(name_dict_t *name_dict);
 /* Free name_dict_t list. */
 void free_name_dict(name_dict_t *name_dict);
 
-#ifdef PRINT
-/* Print name dictionary. */
-void print_name_dict(name_dict_t *name_dict);
-#endif
-
 #endif

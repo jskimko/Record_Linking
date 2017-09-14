@@ -94,15 +94,3 @@ void free_name_dict(name_dict_t *name_dict) {
     }
     name_dict = NULL;
 }
-
-#ifdef PRINT
-/* Print name dictionary. */
-void print_name_dict(name_dict_t *name_dict) {
-    name_dict_t *cur = name_dict;
-    while (cur->next) {
-        cur = cur->next;
-        printf("%s %s\n", cur->fname, cur->fname_std);
-    }
-    printf("\n");
-}
-#endif

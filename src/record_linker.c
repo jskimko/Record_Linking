@@ -44,8 +44,6 @@ int main(int argc, char *argv[]) {
     min_age2 = atoi(argv[11]); max_age2 = atoi(argv[12]);
     filename = argv[13];
 
-    if ((fp = fopen(filename, "w")) == NULL) 
-        EXIT_WITH_ERROR("could not open output file");
 
     /* Extract valid entries from data files */
     fprintf(stderr, "Extracting data...\n");
@@ -175,8 +173,8 @@ int main(int argc, char *argv[]) {
 
     /* Write matches */
     printf("Writing matches to output file '%s':\n", filename);
-    write_matches(fp, matches);
-    fclose(fp);
+    rc = write_matches(filename, matches);
+    if (rc == -1) EXIT_WITH_ERROR("could not write output");
 
 
     /* Free data */
@@ -514,7 +512,10 @@ void print_entries(entry_t *entries) {
 #endif
 
 /* Print the contents of a match list. */
-void write_matches(FILE *fp, match_t *matches) {
+void write_matches(char *filename, match_t *matches) {
+    FILE *fp;
+    if ((fp = fopen(filename, "w")) == NULL) return -1;
+
     while (matches->next) {
         matches = matches->next;
         fprintf(fp, "%d %s %s %c %d %s\t-->\t", matches->entry1->recID, 
@@ -526,4 +527,5 @@ void write_matches(FILE *fp, match_t *matches) {
                 matches->entry2->sex, matches->entry2->age,
                 matches->entry2->par);
     }
+    fclose(fp);
 } // print_matches

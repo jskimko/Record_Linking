@@ -46,7 +46,7 @@ void free_entries(entry_t *entries);
 void free_matches(match_t *matches);
 
 /* Write the contents of a match list. */
-void write_matches(FILE *fp, match_t *matches);
+void write_matches(char filename, match_t *matches);
 
 #ifdef PRINT
 /* Print the contents of an entry list. */

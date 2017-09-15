@@ -90,11 +90,14 @@ if [ ! $? -eq 0 ]; then
     exit
 fi
 echo "Running..."
-echo "  Start time is `date`"
+echo "./record_linker $args"
+echo "Start time is `date`"
+echo "------------------------------------------"
 ./record_linker $args
+echo "------------------------------------------"
 if [ ! $? -eq 0 ]; then
     echo "run.sh:error: could not run" >&2
     exit
 fi
-echo "  End time is `date`"
+echo "End time is `date`"
 echo "Done."

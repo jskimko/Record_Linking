@@ -83,7 +83,18 @@ args="$data1.sort $data2.sort $names1.sort $names2.sort"
 args="$args $std_names.sort $year1 $year2 $sex"
 args="$args $min_age1 $max_age1 $min_age2 $max_age2"
 args="$args $output"
-echo "Compiling and running..."
-echo "./record_linker $args"
-make && ./record_linker $args
+echo "Compiling..."
+make
+if [ ! $? -eq 0 ]; then
+    echo "run.sh:error: could not compile" >&2
+    exit
+fi
+echo "Running..."
+echo "  Start time is `date`"
+./record_linker $args
+if [ ! $? -eq 0 ]; then
+    echo "run.sh:error: could not run" >&2
+    exit
+fi
+echo "  End time is `date`"
 echo "Done."

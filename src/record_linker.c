@@ -20,8 +20,7 @@ int main(int argc, char *argv[]) {
     int count1, count2;
     name_dict_t *name_dict;
     match_t *matches;
-    int rc;
-    FILE *fp;
+    int rc=0;
 
 #ifdef _OPENMP
     double wtime;
@@ -172,9 +171,18 @@ int main(int argc, char *argv[]) {
 
 
     /* Write matches */
-    printf("Writing matches to output file '%s':\n", filename);
+    fprintf(stderr, "Writing matches to output file '%s'...\n", filename);
+
+#ifdef _OPENMP
+    wtime = omp_get_wtime();
+#endif
+
     rc = write_matches(filename, matches);
     if (rc == -1) EXIT_WITH_ERROR("could not write output");
+
+#ifdef _OPENMP
+    fprintf(stderr, "Took %lf seconds\n", omp_get_wtime() - wtime);
+#endif
 
 
     /* Free data */
@@ -413,7 +421,7 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     cur1 = entries1->next;
     cur2 = entries2;
 
-#pragma omp parallel
+#pragma omp parallel firstprivate(cur1, cur2)
 {
 #ifdef _OPENMP
     int n_threads = omp_get_num_threads();
@@ -512,7 +520,7 @@ void print_entries(entry_t *entries) {
 #endif
 
 /* Print the contents of a match list. */
-void write_matches(char *filename, match_t *matches) {
+int write_matches(char *filename, match_t *matches) {
     FILE *fp;
     if ((fp = fopen(filename, "w")) == NULL) return -1;
 
@@ -528,4 +536,6 @@ void write_matches(char *filename, match_t *matches) {
                 matches->entry2->par);
     }
     fclose(fp);
+
+    return 0;
 } // print_matches

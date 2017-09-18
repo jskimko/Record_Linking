@@ -58,13 +58,13 @@ int main(int argc, char *argv[]) {
         #pragma omp task
         {
             entries1 = extract_valid_entries(data1, &count1);
-            fprintf(stderr, "  Extracted data 1\n");
+            fprintf(stderr, "  Found %d valid entries in data 1\n", count1);
         }
         // Extract second data file
         #pragma omp task
         {
             entries2 = extract_valid_entries(data2, &count2);
-            fprintf(stderr, "  Extracted data 2\n");
+            fprintf(stderr, "  Found %d valid entries in data 2\n", count2);
         }
     }
 
@@ -429,16 +429,24 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     int iters = count / n_threads;
     int i;
 
+    int m = 0;
     for (i = 0; i < iters * tid; i++) {
         cur1 = cur1->next;
+        m++;
     }
 
     #pragma omp single
+    {
     fprintf(stderr, "  Using %d threads...\n", n_threads);
+    }
+    fprintf(stderr, "%d: starting at entry %d/%d\n", omp_get_thread_num(), m, count);
 #endif
 
+    int n=0;
     // for each entry1
     while (cur1) {
+        fprintf(stderr, "%d: %d %d\n", omp_get_thread_num(), n, cur1->recID);
+        n++;
         // check each entry2 for satisfiability
         while (cur2->next) {
             cur2 = cur2->next;

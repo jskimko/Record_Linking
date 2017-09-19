@@ -45,36 +45,62 @@ not_empty output    "$output"
 
 
 #####################
-#       SORT        #
+#       COMBINE     #
 #####################
 
-# Sort data and name files
-echo "Sorting files if necessary... "
-for f in "$data1" "$data2" "$names1" "$names2"; do
+echo "Checking file paths..."
+for f in "$data1" "$data2" "$names1" "$names2" "$std_names"; do
     if [ ! -f "$f" ]; then
         echo "run.sh:error: invalid path '$f'" >&2
         exit
     fi
-
-    if [ ! -f "$f.sort" ]; then
-        echo -n "  Sorting $f... "
-        timing=`{ time sort -T $HOME -snk2 "$f" > "$f.sort"; } 2>&1 | grep real`
-        echo `echo $timing | awk '{printf $2}'`
-    fi
 done
 
-# Sort std_names
-if [ ! -f "$std_names" ]; then
-    echo "run.sh:error: invalid path '$f'" >&2
-    exit
+echo "Reformatting files if necessary... "
+function reformat {
+    # Sort data and names
+    echo -n "  Sorting $1... "
+    timing=`{ time sort -T $HOME -snk2 "$1" > "$1.sort"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+
+    echo -n "  Sorting $2... "
+    timing=`{ time sort -T $HOME -snk2 "$2" > "$2.sort"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+
+    # Compress files
+    echo -n "  Compressing $1... "
+    timing=`{ time awk -F'\t' '{print $2,$42,$44,$69}' "$1.sort" > "$1.awk"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+
+    echo -n "  Compressing $2... "
+    timing=`{ time awk -F'\t' '{print $4,$6}' "$2.sort" > "$2.awk"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+
+    # Combine files
+    echo -n "  Combining files into $1.in..."
+    timing=`{ time paste -d' ' "$1.awk" "$2.awk" > "$1.in"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+
+    # Clean up
+    echo -n "  Removing intermediary files..."
+    timing=`{ time rm -f {"$1","$2"}.{sort,awk}; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+}
+if [ ! -f "$data1.in" ]; then
+    reformat "$data1" "$names1"
+fi
+if [ ! -f "$data2.in" ]; then
+    reformat "$data2" "$names2"
 fi
 
+# Sort std_names
 if [ ! -f "$std_names.sort" ]; then
     echo -n "  Sorting $std_names... "
     timing=`{ time sort -T $HOME -sk1.1,1.1 "$std_names" > "$std_names.sort"; } 2>&1 | grep real`
     echo `echo $timing | awk '{printf $2}'`
 fi
 
+exit
 
 ###############################
 #       COMPILE AND RUN       #

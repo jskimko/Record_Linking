@@ -71,20 +71,32 @@ function reformat {
     echo -n "  Compressing $1... "
     timing=`{ time awk -F'\t' '{print $2,$42,$44,$69}' "$1.sort" > "$1.awk"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
+    rm -f "$1.sort"
 
     echo -n "  Compressing $2... "
     timing=`{ time awk -F'\t' '{print $4,$6}' "$2.sort" > "$2.awk"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
+    rm -f "$2.sort"
 
     # Combine files
-    echo -n "  Combining files into $1.in..."
-    timing=`{ time paste -d' ' "$1.awk" "$2.awk" > "$1.in"; } 2>&1 | grep real`
+    echo -n "  Combining files... "
+    timing=`{ time paste -d' ' "$1.awk" "$2.awk" > "$1.paste"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
+    rm -f "$1.awk" "$2.awk"
 
-    # Clean up
-    echo -n "  Removing intermediary files..."
-    timing=`{ time rm -f {"$1","$2"}.{sort,awk}; } 2>&1 | grep real`
+    # Sorting by parish
+    echo -n "  Sorting by parish... "
+    timing=`{ time sort -sk4,4 "$1.paste" > "$1.par"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
+    rm -f "$1.paste"
+
+    # Trim extra whitespace
+    echo -n "  Trimming extra spaces... "
+    timing=`{ time tr -s ' ' < "$1.par" > "$1.in"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+    rm -f "$1.par"
+
+    echo "Generated $1.in"
 }
 if [ ! -f "$data1.in" ]; then
     reformat "$data1" "$names1"

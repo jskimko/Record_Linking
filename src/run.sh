@@ -1,28 +1,23 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 1 ]; then
-    echo "usage: $0 config_file"
-    exit
-fi
-
 ###########################
 #       READ CONFIG       #
 ###########################
 
 echo "Reading configuration file... "
-data1=`grep data1 $1 | awk -F'"' '{print $2}'`
-data2=`grep data2 $1 | awk -F'"' '{print $2}'`
-names1=`grep names1 $1 | awk -F'"' '{print $2}'`
-names2=`grep names2 $1 | awk -F'"' '{print $2}'`
-std_names=`grep std_names $1 | awk -F'"' '{print $2}'`
-output=`grep output $1 | awk -F'"' '{print $2}'`
-year1=`grep year1 $1 | awk -F'"' '{print $2}'`
-year2=`grep year2 $1 | awk -F'"' '{print $2}'`
-sex=`grep sex $1 | awk -F'"' '{print $2}'`
-min_age1=`grep min_age1 $1 | awk -F'"' '{print $2}'`
-max_age1=`grep max_age1 $1 | awk -F'"' '{print $2}'`
-min_age2=`grep min_age2 $1 | awk -F'"' '{print $2}'`
-max_age2=`grep max_age2 $1 | awk -F'"' '{print $2}'`
+data1=`grep data1 config | awk -F'"' '{print $2}'`
+data2=`grep data2 config | awk -F'"' '{print $2}'`
+names1=`grep names1 config | awk -F'"' '{print $2}'`
+names2=`grep names2 config | awk -F'"' '{print $2}'`
+std_names=`grep std_names config | awk -F'"' '{print $2}'`
+output=`grep output config | awk -F'"' '{print $2}'`
+year1=`grep year1 config | awk -F'"' '{print $2}'`
+year2=`grep year2 config | awk -F'"' '{print $2}'`
+sex=`grep sex config | awk -F'"' '{print $2}'`
+min_age1=`grep min_age1 config | awk -F'"' '{print $2}'`
+max_age1=`grep max_age1 config | awk -F'"' '{print $2}'`
+min_age2=`grep min_age2 config | awk -F'"' '{print $2}'`
+max_age2=`grep max_age2 config | awk -F'"' '{print $2}'`
 
 # Check if we have everything
 function not_empty {
@@ -58,44 +53,52 @@ done
 
 echo "Reformatting files if necessary... "
 function reformat {
-    # Sort data and names
-    echo -n "  Sorting $1... "
-    timing=`{ time sort -T $HOME -snk2 "$1" > "$1.sort"; } 2>&1 | grep real`
-    echo `echo $timing | awk '{print $2}'`
-
-    echo -n "  Sorting $2... "
-    timing=`{ time sort -T $HOME -snk2 "$2" > "$2.sort"; } 2>&1 | grep real`
-    echo `echo $timing | awk '{print $2}'`
-
     # Compress files
     echo -n "  Compressing $1... "
-    timing=`{ time awk -F'\t' '{print $2,$42,$44,$69}' "$1.sort" > "$1.awk"; } 2>&1 | grep real`
+    timing=`{ time awk -F'\t' '{printf("%s;%s;%s;%s\n",$2,$42,$44,$69)}' \
+                               "$1" > "$1.awk"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
-    rm -f "$1.sort"
 
     echo -n "  Compressing $2... "
-    timing=`{ time awk -F'\t' '{print $4,$6}' "$2.sort" > "$2.awk"; } 2>&1 | grep real`
+    timing=`{ time awk -F'\t' '{printf("%s;%s\n"),$4,$6}' \
+                               "$2" > "$2.awk"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
-    rm -f "$2.sort"
+
+    # Sort data and names
+    echo -n "  Sorting $1... "
+    timing=`{ time tail +2 "$1.awk" | sort -t';' -sn > "$1.sort"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+    rm -f "$1.awk"
+
+    echo -n "  Sorting $2... "
+    timing=`{ time tail +2 "$2.awk" | sort -t';' -sn > "$2.sort"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+    rm -f "$2.awk"
 
     # Combine files
     echo -n "  Combining files... "
-    timing=`{ time paste -d' ' "$1.awk" "$2.awk" > "$1.paste"; } 2>&1 | grep real`
+    timing=`{ time paste -d';' "$1.sort" "$2.sort" > "$1.paste"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
-    rm -f "$1.awk" "$2.awk"
+    rm -f "$1.sort" "$2.sort"
 
     # Sorting by parish
     echo -n "  Sorting by parish... "
-    timing=`{ time sort -sk4,4 "$1.paste" > "$1.par"; } 2>&1 | grep real`
+    timing=`{ time sort -t';' -sk4,4 "$1.paste" > "$1.par"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
     rm -f "$1.paste"
 
-    # Trim extra whitespace
-    echo -n "  Trimming extra spaces... "
-    timing=`{ time tr -s ' ' < "$1.par" > "$1.in"; } 2>&1 | grep real`
+    # Trim spaces
+    echo -n "  Trimming spaces... "
+    timing=`{ time tr -d ' ' < "$1.par" > "$1.tr"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
     rm -f "$1.par"
 
+    # Fill empty fields
+    echo -n "  Filling empty fields... "
+    timing=`{ time sed -i 's/;;/;.;/g' "$1.tr"; } 2>&1 | grep real`
+    echo `echo $timing | awk '{print $2}'`
+
+    mv "$1.tr" "$1.in"
     echo "Generated $1.in"
 }
 if [ ! -f "$data1.in" ]; then
@@ -112,12 +115,10 @@ if [ ! -f "$std_names.sort" ]; then
     echo `echo $timing | awk '{printf $2}'`
 fi
 
-exit
-
 ###############################
 #       COMPILE AND RUN       #
 ###############################
-args="$data1.sort $data2.sort $names1.sort $names2.sort"
+args="$data1.in $data2.in"
 args="$args $std_names.sort $year1 $year2 $sex"
 args="$args $min_age1 $max_age1 $min_age2 $max_age2"
 args="$args $output"

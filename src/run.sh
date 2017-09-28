@@ -60,7 +60,7 @@ function reformat {
     echo `echo $timing | awk '{print $2}'`
 
     echo -n "  Compressing $2... "
-    timing=`{ time awk -F'\t' '{printf("%s;%s\n"),$4,$6}' \
+    timing=`{ time awk -F'\t' '{printf("%s;%s;%s\n"),$2,$4,$6}' \
                                "$2" > "$2.awk"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
 
@@ -75,11 +75,13 @@ function reformat {
     echo `echo $timing | awk '{print $2}'`
     rm -f "$2.awk"
 
+
     # Combine files
     echo -n "  Combining files... "
-    timing=`{ time paste -d';' "$1.sort" "$2.sort" > "$1.paste"; } 2>&1 | grep real`
+    timing=`{ time awk -F';' '{printf("%s;%s\n",$2,$3)}' "$2.sort" > "$2.tmp" &&
+        paste -d';' "$1.sort" "$2.tmp" > "$1.paste"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
-    rm -f "$1.sort" "$2.sort"
+    rm -f "$1.sort" "$2.sort" "$2.tmp"
 
     # Sorting by parish
     echo -n "  Sorting by parish... "

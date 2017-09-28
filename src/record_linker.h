@@ -27,12 +27,6 @@ typedef struct match_t match_t;
 /* Extracts entries from data file based on sex and age. */
 entry_t *extract_valid_entries(char *filename, int *count);
 
-/* Reads the name file and adds names to a list of valid entries. */
-int add_names(char *filename, entry_t *entries);
-
-/* Copy first word without leading and trailing spaces. */
-void stripped_word_copy(char *dest, char *src);
-
 /* Standardize first names. */
 void  standardize_fnames(entry_t *entries, name_dict_t *name_dict);
 

@@ -25,7 +25,7 @@ struct match_t {
 typedef struct match_t match_t;
 
 /* Extracts entries from data file based on sex and age. */
-entry_t *extract_valid_entries(char *filename, int *count);
+entry_t *extract_valid_entries(char *filename, int *count, int id);
 
 /* Standardize first names. */
 void  standardize_fnames(entry_t *entries, name_dict_t *name_dict);

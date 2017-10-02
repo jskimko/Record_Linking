@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     std_names = argv[3];
     year1 = atoi(argv[4]); year2 = atoi(argv[5]);
     sex_global = argv[6][0];
-    min_age1 = atoi(argv[7]); max_age2 = atoi(argv[8]);
+    min_age1 = atoi(argv[7]); max_age1 = atoi(argv[8]);
     min_age2 = atoi(argv[9]); max_age2 = atoi(argv[10]);
     output = argv[11];
 
@@ -53,14 +53,14 @@ int main(int argc, char *argv[]) {
         // Extract first data file
         #pragma omp task
         {
-            entries1 = extract_valid_entries(data1, &count1);
-            fprintf(stderr, "  Found %d valid entries in data 1\n", count1);
+            entries1 = extract_valid_entries(data1, &count1, 1);
+            fprintf(stderr, "%d:  Found %d valid entries in data 1\n", omp_get_thread_num(), count1);
         }
         // Extract second data file
         #pragma omp task
         {
-            entries2 = extract_valid_entries(data2, &count2);
-            fprintf(stderr, "  Found %d valid entries in data 2\n", count2);
+            entries2 = extract_valid_entries(data2, &count2, 2);
+            fprintf(stderr, "%d:  Found %d valid entries in data 2\n", omp_get_thread_num(), count2);
         }
     }
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
 } // main
 
 /* Extracts entries from data file based on sex and age. */
-entry_t *extract_valid_entries(char *filename, int *count) {
+entry_t *extract_valid_entries(char *filename, int *count, int id) {
     FILE *fp;
     char buf[4096];
     char *col;
@@ -170,8 +170,6 @@ entry_t *extract_valid_entries(char *filename, int *count) {
     char sex;
     unsigned char age;
     int len;
-
-    static int id = 1; // first or second call
 
     // Open data file
     if ((fp = fopen(filename, "r")) == NULL) {
@@ -191,16 +189,15 @@ entry_t *extract_valid_entries(char *filename, int *count) {
                 __FILE__, __LINE__);
         return NULL;
     } 
-    id++;
 
     cur = entries = malloc(sizeof(entry_t));
     cur->fname = cur->lname = NULL; cur->par = NULL;
     cur->next = NULL;
     *count = 0;
 
+    //int n=0;
     // Store valid entries
     while (fgets(buf, sizeof(buf), fp)) {
-        fprintf(stderr, "%s", buf);
 
         // RecID
         col = strtok_r(buf, ";", &saveptr);
@@ -214,7 +211,12 @@ entry_t *extract_valid_entries(char *filename, int *count) {
         // Age
         col = strtok_r(NULL, ";", &saveptr); 
         age = atoi(col);
-        if (age < min_age || age > max_age) continue;
+        if ((age < min_age) || (age > max_age)) continue;
+
+        // Std_Par
+        col = strtok_r(NULL, ";", &saveptr);
+        //if (col[0] == '.') continue;
+
 
         // is valid entry
         entry_t *new_entry;
@@ -226,8 +228,6 @@ entry_t *extract_valid_entries(char *filename, int *count) {
         new_entry->lname = NULL;
         new_entry->next = NULL;
 
-        // Std_Par
-        col = strtok_r(NULL, ";", &saveptr);
         len = strlen(col);
         new_entry->par = malloc(len+1);
         strcpy(new_entry->par, col);
@@ -241,9 +241,10 @@ entry_t *extract_valid_entries(char *filename, int *count) {
         // Sname
         col = strtok_r(NULL, ";", &saveptr);
         len = strlen(col);
-        new_entry->lname = malloc(len+1);
+        new_entry->lname = malloc(len);
         strcpy(new_entry->lname, col);
-        
+        new_entry->lname[len-1] = '\0';
+
         cur->next = new_entry;
         cur = cur->next;
         (*count)++;
@@ -256,6 +257,7 @@ entry_t *extract_valid_entries(char *filename, int *count) {
 /* Standardize first names. */
 void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
     name_dict_t *head = name_dict;
+    int len;
 
     // check each entry against name dictionary
     while (entries->next) {
@@ -263,15 +265,14 @@ void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
         name_dict = head->next;
 
         // no name
-        if (entries->fname == NULL) continue;
+        if (entries->fname[0] == '.') continue;
 
         while (name_dict) {
             if (strcmp(entries->fname, name_dict->fname) == 0) {
                 // copy standardized fname
-                int len = strlen(name_dict->fname_std);
+                len = strlen(name_dict->fname_std);
                 if ((entries->fname = realloc(entries->fname, len+1)) == NULL) break;
                 strcpy(entries->fname, name_dict->fname_std);
-
                 break; 
             }
             name_dict = name_dict->next;
@@ -288,11 +289,11 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     int diff = (year2 > year1) ? (year2-year1) : (year1-year2);
     
     cur_ret = ret = malloc(sizeof(match_t));
-    ret->entry2 = NULL; ret->entry2 = NULL;
+    ret->entry1 = NULL; ret->entry2 = NULL;
     ret->next = NULL;
 
     cur1 = entries1->next;
-    cur2 = entries2;
+    cur2 = entries2->next;
 
 #pragma omp parallel firstprivate(cur1, cur2)
 {
@@ -300,9 +301,9 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     int n_threads = omp_get_num_threads();
     int tid = omp_get_thread_num();
     int iters = count / n_threads;
+    int n=1, m=0;
     int i;
 
-    int m = 0;
     for (i = 0; i < iters * tid; i++) {
         cur1 = cur1->next;
         m++;
@@ -312,18 +313,27 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     {
     fprintf(stderr, "  Using %d threads...\n", n_threads);
     }
-    fprintf(stderr, "%d: starting at entry %d/%d\n", omp_get_thread_num(), m, count);
+    fprintf(stderr, "%d: starting at entry %d/%d\n", tid, m, count);
 #endif
 
-    int n=0;
     // for each entry1
     while (cur1) {
-        fprintf(stderr, "%d: %d/%d %d\n", omp_get_thread_num(), n, iters, cur1->recID);
+#ifdef _OPENMP
+        fprintf(stderr, "%d: iter %d/%d is %d\n", tid, n, iters, cur1->recID);
         if (n++ >= iters) break;
+#endif
+
+        // go to parish
+        while (cur2 && (strcmp(cur1->par, cur2->par) > 0)) {
+            cur2 = cur2->next;
+        }
+
+#ifdef _OPENMP
+        fprintf(stderr, "%d: %s %s\n", tid, cur1->par, cur2->par);
+#endif
 
         // check each entry2 for satisfiability
-        while (cur2->next) {
-            cur2 = cur2->next;
+        while (cur2 && (strcmp(cur1->par, cur2->par) == 0)) {
 
             // age criteria
             if ((cur1->age + diff - cur2->age) > 3) continue;
@@ -335,6 +345,7 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
             if (1-jarowinkler(cur1->lname, cur2->lname) > 0.2) continue;
             if (!cur1->par || !cur2->par) continue;
             if (1-jarowinkler(cur1->par, cur2->par) > 0.2) continue;
+            fprintf(stderr, "3\n");
             
             // save match
             match_t *new_match = malloc(sizeof(match_t));
@@ -348,10 +359,11 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
             cur_ret = cur_ret->next;
             }
 
+            cur2 = cur2->next;
         }
 
         // reset entry2 pointer
-        cur2 = entries2;
+        cur2 = entries2->next;
 
         cur1 = cur1->next;
     }

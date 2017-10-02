@@ -54,13 +54,13 @@ int main(int argc, char *argv[]) {
         #pragma omp task
         {
             entries1 = extract_valid_entries(data1, &count1, 1);
-            fprintf(stderr, "%d:  Found %d valid entries in data 1\n", omp_get_thread_num(), count1);
+            fprintf(stderr, "  Found %d valid entries in data 1\n", count1);
         }
         // Extract second data file
         #pragma omp task
         {
             entries2 = extract_valid_entries(data2, &count2, 2);
-            fprintf(stderr, "%d:  Found %d valid entries in data 2\n", omp_get_thread_num(), count2);
+            fprintf(stderr, "  Found %d valid entries in data 2\n", count2);
         }
     }
 
@@ -213,37 +213,41 @@ entry_t *extract_valid_entries(char *filename, int *count, int id) {
         age = atoi(col);
         if ((age < min_age) || (age > max_age)) continue;
 
-        // Std_Par
-        col = strtok_r(NULL, ";", &saveptr);
-        //if (col[0] == '.') continue;
-
-
         // is valid entry
         entry_t *new_entry;
         new_entry = malloc(sizeof(entry_t));
         new_entry->recID = recID;
-        new_entry->sex = sex;
-        new_entry->age = age;
+        new_entry->sex   = sex;
+        new_entry->age   = age;
         new_entry->fname = NULL;
         new_entry->lname = NULL;
-        new_entry->next = NULL;
+        new_entry->par   = NULL;
+        new_entry->next  = NULL;
 
-        len = strlen(col);
-        new_entry->par = malloc(len+1);
-        strcpy(new_entry->par, col);
+        // Std_Par
+        col = strtok_r(NULL, ";", &saveptr);
+        if (col[0] != '.') {
+            len = strlen(col);
+            new_entry->par = malloc(len+1);
+            strcpy(new_entry->par, col);
+        }
 
         // Pname
         col = strtok_r(NULL, ";", &saveptr);
-        len = strlen(col);
-        new_entry->fname = malloc(len+1);
-        strcpy(new_entry->fname, col);
+        if (col[0] != '.') {
+            len = strlen(col);
+            new_entry->fname = malloc(len+1);
+            strcpy(new_entry->fname, col);
+        }
 
         // Sname
         col = strtok_r(NULL, ";", &saveptr);
-        len = strlen(col);
-        new_entry->lname = malloc(len);
-        strcpy(new_entry->lname, col);
-        new_entry->lname[len-1] = '\0';
+        if (col[0] != '\n') {
+            len = strlen(col);
+            new_entry->lname = malloc(len);
+            strcpy(new_entry->lname, col);
+            new_entry->lname[len-1] = '\0';
+        }
 
         cur->next = new_entry;
         cur = cur->next;
@@ -265,7 +269,7 @@ void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
         name_dict = head->next;
 
         // no name
-        if (entries->fname[0] == '.') continue;
+        if (entries->fname == NULL) continue;
 
         while (name_dict) {
             if (strcmp(entries->fname, name_dict->fname) == 0) {
@@ -320,7 +324,7 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     while (cur1) {
 #ifdef _OPENMP
         fprintf(stderr, "%d: iter %d/%d is %d\n", tid, n, iters, cur1->recID);
-        if (n++ >= iters) break;
+        if (n++ > iters) break;
 #endif
 
         // go to parish
@@ -328,24 +332,32 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
             cur2 = cur2->next;
         }
 
-#ifdef _OPENMP
-        fprintf(stderr, "%d: %s %s\n", tid, cur1->par, cur2->par);
-#endif
-
-        // check each entry2 for satisfiability
+        // check each entry2 with same parish
         while (cur2 && (strcmp(cur1->par, cur2->par) == 0)) {
 
             // age criteria
-            if ((cur1->age + diff - cur2->age) > 3) continue;
+            if ((cur1->age + diff - cur2->age) > 3) {
+                cur2 = cur2->next;
+                continue;
+            }
+
+            // check that strings exist
+            if (!cur1->fname || !cur2->fname || 
+                !cur1->lname || !cur2->lname ||
+                !cur1->par   || !cur2->par) {
+                cur2 = cur2->next;
+                continue;
+            }
 
             // jarowinkler criteria
-            if (!cur1->fname || !cur2->fname) continue;
-            if (1-jarowinkler(cur1->fname, cur2->fname) > 0.2) continue;
-            if (!cur1->lname || !cur2->lname) continue;
-            if (1-jarowinkler(cur1->lname, cur2->lname) > 0.2) continue;
-            if (!cur1->par || !cur2->par) continue;
-            if (1-jarowinkler(cur1->par, cur2->par) > 0.2) continue;
-            fprintf(stderr, "3\n");
+            if ((1-jarowinkler(cur1->fname, cur2->fname) > 0.2) || 
+                (1-jarowinkler(cur1->lname, cur2->lname) > 0.2) || 
+                (1-jarowinkler(  cur1->par,   cur2->par) > 0.2)) {
+                cur2 = cur2->next;
+                continue;
+            }
+
+//fprintf(stderr, "%d %s %s %c %d %s MATCHES %d %s %s %c %d %s\n", cur1->recID, cur1->fname, cur1->lname, cur1->sex, cur1->age, cur1->par, cur2->recID, cur2->fname, cur2->lname, cur2->sex, cur2->age, cur2->par);
             
             // save match
             match_t *new_match = malloc(sizeof(match_t));

@@ -66,12 +66,12 @@ function reformat {
 
     # Sort data and names
     echo -n "  Sorting $1... "
-    timing=`{ time tail +2 "$1.awk" | sort -t';' -sn > "$1.sort"; } 2>&1 | grep real`
+    timing=`{ time tail -n+2 "$1.awk" | sort -t';' -sn > "$1.sort"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
     rm -f "$1.awk"
 
     echo -n "  Sorting $2... "
-    timing=`{ time tail +2 "$2.awk" | sort -t';' -sn > "$2.sort"; } 2>&1 | grep real`
+    timing=`{ time tail -n+2 "$2.awk" | sort -t';' -sn > "$2.sort"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
     rm -f "$2.awk"
 

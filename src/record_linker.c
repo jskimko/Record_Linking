@@ -120,7 +120,6 @@ int main(int argc, char *argv[]) {
     printf("There were %d extracted entries.\n\n", count2);
 #endif
 
-
     /* Find matches */
     fprintf(stderr, "Finding matches...\n");
 
@@ -289,7 +288,7 @@ void standardize_fnames(entry_t *entries, name_dict_t *name_dict) {
 /* Find matches between two entry lists using age and JW distance. */
 match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     match_t *ret, *cur_ret;
-    entry_t *cur1, *cur2;
+    entry_t *cur1, *cur2, *start_par;
     int diff = (year2 > year1) ? (year2-year1) : (year1-year2);
     
     cur_ret = ret = malloc(sizeof(match_t));
@@ -298,8 +297,9 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
 
     cur1 = entries1->next;
     cur2 = entries2->next;
+    start_par = cur2;
 
-#pragma omp parallel firstprivate(cur1, cur2)
+#pragma omp parallel firstprivate(cur1, cur2, start_par)
 {
 #ifdef _OPENMP
     int n_threads = omp_get_num_threads();
@@ -323,13 +323,14 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
     // for each entry1
     while (cur1) {
 #ifdef _OPENMP
-        fprintf(stderr, "%d: iter %d/%d is %d\n", tid, n, iters, cur1->recID);
+        if (n % 10000 == 0) fprintf(stderr, "%d: iter %d/%d is %d\n", tid, n, iters, cur1->recID);
         if (n++ > iters) break;
 #endif
 
         // go to parish
         while (cur2 && (strcmp(cur1->par, cur2->par) > 0)) {
             cur2 = cur2->next;
+            start_par = cur2;
         }
 
         // check each entry2 with same parish
@@ -374,8 +375,8 @@ match_t *find_matches(entry_t *entries1, entry_t *entries2, int count) {
             cur2 = cur2->next;
         }
 
-        // reset entry2 pointer
-        cur2 = entries2->next;
+        // reset entry2 pointer to starting parish
+        cur2 = start_par;
 
         cur1 = cur1->next;
     }

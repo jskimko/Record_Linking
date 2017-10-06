@@ -10,7 +10,7 @@ names2    = "data/full_data/names81.txt"
 std_names = "data/Nickname_std.csv"
 
 # Output file
-output    = "OUT"
+output    = "rl.out"
 
 # Parameters
 year1     = "1851"

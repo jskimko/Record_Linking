@@ -5,9 +5,17 @@ a list of potential links in preparation for ML training.
 
 ## Usage
 
-To run the program, edit ```src/config``` as needed and then execute
-```cd src/ && ./run.sh```.  This shell script reads the configuration file,
-sorts the input data (if necessary), and executes the program.
+To run the program, enter the ```src/``` directory.
+Edit ```config``` as needed and then execute ```./run.sh```.  
+This shell script reads the configuration file, sorts the input data 
+(if necessary), and executes the program.
+
+You may want to redirect stdout and stderr to a file.
+Using bash, you can do ```./run.sh &> file```.
+
+## Requirements
+* [GNU Make](https://www.gnu.org/software/make/)
+* [gcc](https://gcc.gnu.org/)
 
 ## Mac OS
 OpenMP support is required for parallel performance. 

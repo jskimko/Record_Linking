@@ -97,10 +97,11 @@ function reformat {
 
     # Fill empty fields
     echo -n "  Filling empty fields... "
-    timing=`{ time sed -i 's/;;/;.;/g' "$1.tr"; } 2>&1 | grep real`
+    timing=`{ time sed 's/;;/;.;/g' "$1.tr" > "$1.sed"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
+    rm -f "$1.tr"
 
-    mv "$1.tr" "$1.in"
+    mv "$1.sed" "$1.in"
     echo "Generated $1.in"
 }
 if [ ! -f "$data1.in" ]; then

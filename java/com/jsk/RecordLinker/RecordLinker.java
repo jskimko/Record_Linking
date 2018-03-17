@@ -6,10 +6,8 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.GridPane;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -38,11 +36,13 @@ public class RecordLinker extends Application {
     private Button loadBtn;
     private Button runBtn;
 
+    private TextArea logText;
+    private TabPane tabPane;
+    private Tab configTab, logTab;
+
+
     public static void main(String[] args) {
         launch(args);
-    }
-
-    private void run() {
     }
 
     @Override
@@ -54,6 +54,8 @@ public class RecordLinker extends Application {
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
+        HBox.setHgrow(grid, Priority.ALWAYS);
+        VBox.setVgrow(grid, Priority.ALWAYS);
 
         fileLabels = new Label[NUM_FILES_FIELDS];
         fileLabels[0] = new Label("Data 1:");
@@ -148,11 +150,37 @@ public class RecordLinker extends Application {
         });
         grid.add(runBtn, 1, NUM_FILES_FIELDS + NUM_PARAM_FIELDS + 1);
 
+        ColumnConstraints constraint1 = new ColumnConstraints();
+        constraint1.setPercentWidth(15);
+        ColumnConstraints constraint2 = new ColumnConstraints();
+        constraint2.setPercentWidth(80);
+        ColumnConstraints constraint3 = new ColumnConstraints();
+        constraint3.setPercentWidth(5);
+        grid.getColumnConstraints().addAll(constraint1, constraint2, constraint3);
 
+        logText = new TextArea();
+        logText.setEditable(false);
+        logText.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
-        Scene scene = new Scene(grid, 600, 600);
+        tabPane = new TabPane();
+        configTab = new Tab();
+        configTab.setText("Config");
+        configTab.setContent(grid);
+        configTab.setClosable(false);
+
+        logTab = new Tab();
+        logTab.setText("Log");
+        logTab.setContent(logText);
+        logTab.setClosable(false);
+
+        tabPane.getTabs().addAll(configTab, logTab);
+        Scene scene = new Scene(tabPane, 800, 600);
         stage.setScene(scene);
         stage.show();
+    }
+
+    private void run() {
+        tabPane.getSelectionModel().select(logTab);
     }
 
     private void saveFields() {

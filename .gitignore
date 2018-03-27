@@ -1,6 +1,7 @@
 src/data
 src/*.o
 src/record_linker
+src/config
 refs/
 
 .idea/

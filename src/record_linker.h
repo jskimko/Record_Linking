@@ -9,7 +9,7 @@
 struct entry_t {
     unsigned int recID;
     char *fname, *lname;
-    char *par;
+    char *bp;
     unsigned char age;
     char sex;
     struct entry_t *next;

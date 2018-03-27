@@ -55,7 +55,7 @@ echo "Reformatting files if necessary... "
 function reformat {
     # Compress files
     echo -n "  Compressing $1... "
-    timing=`{ time awk -F'\t' '{printf("%s;%s;%s;%s\n",$2,$42,$44,$69)}' \
+    timing=`{ time awk -F'\t' '{printf("%s;%s;%s;%s\n",$2,$42,$44,$70)}' \
                                "$1" > "$1.awk"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
 
@@ -83,23 +83,26 @@ function reformat {
     echo `echo $timing | awk '{print $2}'`
     rm -f "$1.sort" "$2.sort" "$2.tmp"
 
-    # Sorting by parish
-    echo -n "  Sorting by parish... "
-    timing=`{ time sort -t';' -sk4,4 "$1.paste" > "$1.par"; } 2>&1 | grep real`
+    # Sorting by birth county
+    echo -n "  Sorting by birth county... "
+    timing=`{ time sort -t';' -sk4,4 "$1.paste" > "$1.bp"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
     rm -f "$1.paste"
 
     # Trim spaces
     echo -n "  Trimming spaces... "
-    timing=`{ time tr -d ' ' < "$1.par" > "$1.tr"; } 2>&1 | grep real`
+    timing=`{ time tr -d ' ' < "$1.bp" > "$1.tr"; } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
-    rm -f "$1.par"
+    rm -f "$1.bp"
 
     # Fill empty fields
     echo -n "  Filling empty fields... "
-    timing=`{ time sed 's/;;/;.;/g' "$1.tr" > "$1.sed"; } 2>&1 | grep real`
+    timing=`{ time \
+        sed -e 's/^;/.;/' -e 's/;;/;.;/g' -e 's/;$/;./' "$1.tr" > "$1.sed1";
+        sed -e 's/^;/.;/' -e 's/;;/;.;/g' -e 's/;$/;./' "$1.sed1" > "$1.sed";
+        } 2>&1 | grep real`
     echo `echo $timing | awk '{print $2}'`
-    rm -f "$1.tr"
+    rm -f "$1.tr" "$1.sed1"
 
     mv "$1.sed" "$1.in"
     echo "Generated $1.in"

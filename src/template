@@ -1,0 +1,22 @@
+#
+# Configuration file.
+#
+
+# Paths to files
+data1     = "data/EW51.txt"
+data2     = "data/EW81.txt"
+names1    = "data/names51.txt"
+names2    = "data/names81.txt"
+std_names = "data/Nickname_std_w_JW.csv"
+
+# Output file
+output    = "rl.csv"
+
+# Parameters
+year1     = "1851"
+year2     = "1881"
+sex       = "M"
+min_age1  = "0"
+max_age1  = "10"
+min_age2  = "27"
+max_age2  = "43"

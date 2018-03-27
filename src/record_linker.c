@@ -441,11 +441,11 @@ int write_matches(char *filename, match_t *matches) {
 
     while (matches->next) {
         matches = matches->next;
-        fprintf(fp, "%d %s %s %c %d %s\t-->\t", matches->entry1->recID,
+        fprintf(fp, "%d,%s,%s,%c,%d,%s,", matches->entry1->recID,
                 matches->entry1->fname, matches->entry1->lname,
                 matches->entry1->sex, matches->entry1->age,
                 matches->entry1->bp);
-        fprintf(fp, "%d %s %s %c %d %s\n", matches->entry2->recID,
+        fprintf(fp, "%d,%s,%s,%c,%d,%s\n", matches->entry2->recID,
                 matches->entry2->fname, matches->entry2->lname,
                 matches->entry2->sex, matches->entry2->age,
                 matches->entry2->bp);

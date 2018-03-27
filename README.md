@@ -6,7 +6,8 @@ a list of potential links in preparation for ML training.
 ## Usage
 
 To run the program, enter the ```src/``` directory.
-Edit ```config``` as needed and then execute ```./run.sh```.  
+Copy ```template``` to a file named ```config``` and edit this file as needed.
+Finally, execute ```./run.sh```.
 This shell script reads the configuration file, sorts the input data 
 (if necessary), and executes the program.
 

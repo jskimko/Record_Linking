@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+export LANG=C
+export LC_ALL=C
+
 ###########################
 #       READ CONFIG       #
 ###########################
